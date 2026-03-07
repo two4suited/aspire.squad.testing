@@ -157,3 +157,76 @@ Blockers #22 and #23 resolved. E2E tests should now pass on re-run. No changes t
 
 *Testing complete. All failures documented and tracked.*
 
+## Session 3 — E2E Tests with Aspire Service Discovery Fix
+
+**Date:** 2026-03-07
+
+**Task:** Run E2E tests against live Aspire application after prior session fixes.
+
+**Findings:**
+
+### Test Infrastructure Fix: Dynamic Port Discovery ✅
+
+**Root Cause (New Issue):** Playwright configuration was hardcoded to `http://localhost:5173`, but Aspire dynamically allocates ports at startup. Vite was running on port 53074, causing `ERR_CONNECTION_REFUSED`.
+
+**Fix Applied:** Updated `playwright.config.ts` to support Aspire service discovery:
+- Checks for explicit `VITE_BASE_URL` environment variable
+- Falls back to Aspire-injected variables: `services__web__http__0` and `services__web__https__0`
+- Defaults to `http://localhost:5173` if none are set
+
+**Result:** Frontend connectivity restored ✅
+
+### Database Initialization Issue: Cosmos DB Schema Missing ❌
+
+**New Root Cause:** All 15 tests now connect to frontend but fail due to Cosmos DB missing schema. API returns `404 CosmosException: Collection 'Teams' not found in database 'DogTeamsDb'`.
+
+**Error Details:**
+```
+Collection 'Teams' not found in database 'DogTeamsDb'
+ActivityId: 00000000-0000-0000-0000-000000000000
+RequestUri: http://localhost:52994/dbs/DogTeamsDb/colls/Teams
+StatusCode: NotFound
+```
+
+**Impact:** 
+- 15/15 tests fail due to API errors (500 when accessing dashboard after registration)
+- Database schema not auto-created by Entity Framework
+- Tests cannot proceed past dashboard load
+
+**Affected Categories:**
+- Authentication (4 tests): Registration fails, login error message not displayed
+- Team Management (3 tests): Teams list API returns 500
+- Owner Management (2 tests): Cannot create teams
+- Dog Management (2 tests): Depends on team creation
+- Error Handling (2 tests): Depends on team creation
+- Complete User Journey (1 test): Full workflow blocked
+
+### Test Pattern Learning: Cosmos Emulator Initialization
+
+The Cosmos emulator (via `RunAsPreviewEmulator()`) appears not to initialize database schema automatically. This is typical EF Core behavior — migrations must run on startup or databases must be seeded.
+
+### Next Steps
+
+1. **Backend Team (Amos):** Configure Entity Framework to auto-initialize Cosmos DB schema on startup
+   - Add `context.Database.EnsureCreatedAsync()` or run migrations during Aspire startup
+   - Ensure all required collections exist before tests run
+
+2. **Test Infrastructure:** Consider adding pre-flight health check
+   - Verify API responds with 200 before running tests
+   - Log actual HTTP responses for debugging
+
+3. **Documentation:** Update test setup guide to document:
+   - Dynamic port discovery requirements
+   - Cosmos DB schema initialization expectations
+   - How to verify Aspire infrastructure readiness
+
+### Key Learning
+
+**Aspire Service Discovery Works:** Once properly configured, the dynamic port discovery is transparent and reliable. The service reference system (`services__web__http__0`) is production-grade and works as designed.
+
+**Database State Matters:** E2E tests depend on database schema being ready. Unlike unit tests, E2E integration is only as good as the full stack initialization.
+
+---
+
+*All tool changes committed. E2E infrastructure testing complete.*
+
