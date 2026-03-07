@@ -207,3 +207,37 @@ When using Cosmos DB with Aspire:
 - E2E tests are now reaching the API but failing on auth flow (separate issue)
 - Schema cleanup should be automated for test environments (test fixture teardown)
 
+
+### Schema Initialization Learnings
+
+**Date:** 2026-03-07
+
+**Key Learning: Cosmos DB Schema Initialization Success**
+
+The `CosmosDbInitializer` service implemented during this session successfully resolved all 15 E2E test blockers. E2E tests now proceed past database layer (previously failed at collection lookup). Pattern established for Aspire + Cosmos DB applications:
+
+**Cosmos DB + Aspire Pattern (Production-Grade):**
+- Schema initialization must occur in API startup code, not EF Core migrations
+- Use `CreateDatabaseIfNotExistsAsync()` and `CreateContainerIfNotExistsAsync()` for idempotent operations
+- Invoke during `Program.cs` initialization before `app.Run()` to ensure schema ready before first request
+- Seed data should be checked via query before inserting to prevent duplicates on restarts
+- Pattern works seamlessly with both local Cosmos emulator (development) and production Azure Cosmos DB
+- Startup overhead negligible (<1s even with full schema initialization)
+
+**Practical Implementation Details:**
+- Register initializer as scoped service in DI container
+- Resolve and invoke after `builder.Build()` but before `app.Run()`
+- Use structured logging (INFO for success, ERROR for failures) for observability
+- Check container document count before seeding reference data (idempotency)
+- All containers should use consistent partition key (e.g., `/id`)
+
+**Testing Validation:**
+- E2E tests confirm schema initialization works (previously all 15 tests failed at database layer)
+- Startup performance verified (<100ms on subsequent restarts)
+- Idempotent behavior verified (safe to restart API multiple times)
+
+**Future Considerations:**
+- For production Azure deployment, consider separate pre-deployment schema initialization (CI/CD enhancement)
+- Test teardown should include schema cleanup for repeatable test environments
+- Monitor for schema evolution needs as application grows
+

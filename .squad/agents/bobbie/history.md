@@ -244,3 +244,24 @@ The Cosmos emulator (via `RunAsPreviewEmulator()`) appears not to initialize dat
 
 *All tool changes committed. E2E infrastructure testing complete.*
 
+
+## Learnings
+
+### Session 5 — E2E Blocker Resolution Complete
+
+**Date:** 2026-03-07
+
+**Key Learnings:**
+
+1. **Uniform Failure Pattern Indicates Infrastructure Blocker:** When all 15 tests fail identically with the same error (404 on first database query), it's nearly always infrastructure, not application logic. This pattern rapidly differentiates blocker from flaky test.
+
+2. **Aspire Service Discovery Via Environment Variables:** Tests must read Aspire-injected environment variables (`services__web__http__0`, `services__web__https__0`) rather than hardcoding ports. This is the production-grade pattern for all Aspire-integrated testing.
+
+3. **Database Schema Readiness is E2E Prerequisite:** Unlike unit tests, E2E tests depend on full stack initialization. Schema must be ready before tests run, not created lazily during test execution. Health checks should verify schema before test start.
+
+4. **Test Pattern: Routed Blocker Successfully:** Identified root cause (Cosmos DB collections missing), documented clearly, routed to backend team. Backend implemented fix. Tests now proceed past database layer — blocker routed correctly, fix verified.
+
+5. **Playwright Port Discovery Pattern:** The solution implemented (checking environment variables in order: `VITE_BASE_URL` → Aspire vars → fallback) is the recommended pattern for Aspire-integrated Playwright tests.
+
+---
+
