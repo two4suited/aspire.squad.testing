@@ -1,0 +1,33 @@
+name: Configure Branch Protection
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/branch-protection.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  configure-protection:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure branch protection for main
+        run: |
+          # This script uses GitHub CLI to configure branch protection rules
+          # Note: Requires push permission and repository admin rights
+          gh api repos/${{ github.repository }}/branches/main/protection \
+            -f required_status_checks='{"strict":true,"contexts":["Build and Test (.NET 10)"]}' \
+            -f enforce_admins=true \
+            -f required_pull_request_reviews='{"dismiss_stale_reviews":true,"require_code_owner_reviews":false,"required_approving_review_count":1}' \
+            -f allow_force_pushes=false \
+            -f allow_deletions=false \
+            2>/dev/null || echo "Branch protection may already be configured or requires higher permissions"
+        env:
+          GH_TOKEN: ${{ github.token }}
