@@ -14,7 +14,19 @@
 
 ## Learnings
 
-(To be populated as work progresses)
+### Aspire & Frontend Orchestration Patterns
+
+1. **Dynamic Port Allocation:** Aspire removes the need for hardcoded ports in `launchSettings.json`. Service endpoints are discovered at runtime and injected as environment variables (e.g., `VITE_API_URL`). This is more flexible than manual port management.
+
+2. **JavaScript/Vite App Registration:** Use `AddViteApp()` from `Aspire.Hosting.JavaScript` (not the deprecated `AddNpmApp()`). The orchestrator correctly starts the dev server with the configured start script.
+
+3. **Environment Variable Injection Pattern:** Aspire injects service URLs into child processes via environment variables prefixed with the service name (e.g., `services__dogteamsapi__https__0`). Frontend code should use Vite's `import.meta.env` to access these variables.
+
+4. **Proxy vs. Environment Variables:** When Aspire injects URLs, the frontend proxy configuration becomes secondary. Vite proxies are useful as fallbacks but shouldn't be relied upon when using Aspire's service discovery.
+
+5. **Test Configuration for Orchestrated Apps:** E2E tests need the backend running separately (not embedded in test config). Tests assume frontend is on localhost:5173 and call the API endpoint resolved from environment variables.
+
+6. **Port Conflict Avoidance on macOS:** Ensure no services use port 5000 (reserved on macOS). The current setup (5173 for frontend, 5243/7206 for API) is safe and follows standard conventions.
 
 ---
 
@@ -46,4 +58,35 @@ None identified. Local setup is complete and ready for development.
 5. **Health checks & OpenTelemetry**: Already configured—use in production probes
 
 **Recommendation:** Setup is production-ready architecturally. Amos can begin backend work, Naomi can work on frontend. Deployment will require managed Azure services.
+
+
+## Session 2 — Comprehensive Aspire Setup Audit
+
+**Date:** 2026-03-07 (Evening)
+
+**Task:** Validate complete DogTeams setup for development readiness
+
+**Audit Scope:**
+1. Aspire AppHost orchestration configuration
+2. API integration and service discovery
+3. Frontend Vite/React configuration
+4. Environment variable injection (VITE_API_URL)
+5. Port allocation and conflict analysis
+6. E2E test configuration
+
+**Findings:** ✅ All major components correctly configured
+
+**Components Verified:**
+- Aspire orchestration: Dynamic port allocation, service discovery operational
+- API integration: Service references properly wired, no hardcoded ports
+- Frontend registration: Using AddViteApp() with Aspire.Hosting.JavaScript 13.1.2
+- Environment injection: VITE_API_URL properly injected and used
+- Port allocation: No conflicts; no macOS port 5000 issues
+- E2E tests: Properly configured to work with Aspire orchestration
+
+**Issues Found:** One minor (non-blocking) clarity issue — Vite config specifies `port: 3000` but start script uses `--port 5173`. Recommendation to update config for consistency.
+
+**Team Clearance:** Amos (Backend), Naomi (Frontend), Bobbie (Tester) all cleared to proceed with development.
+
+**Status:** ✅ Complete. Setup APPROVED for development.
 
