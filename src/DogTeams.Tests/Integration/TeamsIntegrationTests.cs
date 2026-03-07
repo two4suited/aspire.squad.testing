@@ -14,29 +14,29 @@ public class TeamsIntegrationTests : IClassFixture<AppHostFixture>
         _client = fixture.ApiClient;
     }
 
-    [Fact(Skip = "Requires DogTeams.AppHost and DogTeams.Api — remove Skip when projects are available")]
+    [Fact]
     public async Task GetTeams_Returns200()
     {
-        var response = await _client.GetAsync("/teams");
+        var response = await _client.GetAsync("/api/teams");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
-    [Fact(Skip = "Requires DogTeams.AppHost and DogTeams.Api — remove Skip when projects are available")]
+    [Fact]
     public async Task PostTeam_CreatesTeamAndReturns201()
     {
         var newTeam = new { Name = "Alpha Pack" };
 
-        var response = await _client.PostAsJsonAsync("/teams", newTeam);
+        var response = await _client.PostAsJsonAsync("/api/teams", newTeam);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         response.Headers.Location.Should().NotBeNull();
     }
 
-    [Fact(Skip = "Requires DogTeams.AppHost and DogTeams.Api — remove Skip when projects are available")]
+    [Fact]
     public async Task GetTeamById_ReturnsCreatedTeam()
     {
         var newTeam = new { Name = "Bravo Pack" };
-        var createResponse = await _client.PostAsJsonAsync("/teams", newTeam);
+        var createResponse = await _client.PostAsJsonAsync("/api/teams", newTeam);
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
         var location = createResponse.Headers.Location!.ToString();
@@ -47,12 +47,12 @@ public class TeamsIntegrationTests : IClassFixture<AppHostFixture>
         body.Should().Contain("Bravo Pack");
     }
 
-    [Fact(Skip = "Requires DogTeams.AppHost and DogTeams.Api — remove Skip when projects are available")]
+    [Fact]
     public async Task GetTeamById_NonExistentId_Returns404()
     {
         var nonExistentId = Guid.NewGuid();
 
-        var response = await _client.GetAsync($"/teams/{nonExistentId}");
+        var response = await _client.GetAsync($"/api/teams/{nonExistentId}");
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }

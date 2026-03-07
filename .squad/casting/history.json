@@ -1,0 +1,10 @@
+[
+  {
+    "assignment_id": "2026-03-07-init-001",
+    "universe": "the-expanse",
+    "assigned_at": "2026-03-07T15:48:47Z",
+    "team_size": 4,
+    "names_allocated": ["Holden", "Amos", "Naomi", "Bobbie"],
+    "reason": "Squad initialization for DogTeams (.NET 10 Aspire project)"
+  }
+]

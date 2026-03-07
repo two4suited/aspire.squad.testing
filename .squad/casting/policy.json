@@ -1,0 +1,13 @@
+{
+  "version": "1.0",
+  "universes": {
+    "the-expanse": {
+      "display_name": "The Expanse",
+      "capacity": 20,
+      "reserved_names": ["Scribe", "Ralph"],
+      "status": "active"
+    }
+  },
+  "current_universe": "the-expanse",
+  "overflow_strategy": "diegetic-expansion"
+}
