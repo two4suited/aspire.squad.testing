@@ -16,7 +16,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DogTeams.Api\DogTeams.Api.csproj" />
-    <ProjectReference Include="..\DogTeams.Web\DogTeams.Web.csproj" />
   </ItemGroup>
 
 </Project>
