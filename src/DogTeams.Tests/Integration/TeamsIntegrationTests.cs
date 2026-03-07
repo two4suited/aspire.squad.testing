@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 
+namespace DogTeams.Tests.Integration;
+
 // NOTE: These tests require the full Aspire host (DogTeams.AppHost + DogTeams.Api).
 // They are skipped until those projects are available and the AppHostFixture is wired up.
 

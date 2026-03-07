@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 
+namespace DogTeams.Tests.Integration;
+
 // Integration tests for /clubs endpoints.
 // Skipped pending FB-1 ClubsController implementation.
 
