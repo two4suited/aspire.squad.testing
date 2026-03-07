@@ -7,8 +7,8 @@ test.describe('Authentication Flow', () => {
 
     // Should be on dashboard
     await expect(page).toHaveURL('/');
-    await expect(page).toContainText(`Welcome, ${name}`);
-    await expect(page).toContainText('Dog Teams');
+    await expect(page.locator('body')).toContainText(`Welcome, ${name}`);
+    await expect(page.locator('body')).toContainText('Dog Teams');
   });
 
   test('should login with existing account', async ({ page }) => {
@@ -24,7 +24,7 @@ test.describe('Authentication Flow', () => {
 
     // Should be on dashboard
     await expect(page).toHaveURL('/');
-    await expect(page).toContainText('Welcome,');
+    await expect(page.locator('body')).toContainText('Welcome,');
   });
 
   test('should logout successfully', async ({ page }) => {
@@ -34,7 +34,7 @@ test.describe('Authentication Flow', () => {
 
     // Should be on login page
     await expect(page).toHaveURL('/login');
-    await expect(page).toContainText('Sign in');
+    await expect(page.locator('body')).toContainText('Sign in');
   });
 
   test('should redirect to login when accessing protected routes without auth', async ({ page }) => {
@@ -49,7 +49,7 @@ test.describe('Authentication Flow', () => {
     await page.click('button:has-text("Sign in")');
 
     // Should show error message
-    await expect(page).toContainText('Failed');
+    await expect(page.locator('body')).toContainText('Failed');
   });
 });
 
@@ -63,8 +63,8 @@ test.describe('Team Management', () => {
     await createTeam(page, teamName, teamDesc);
 
     // Team should be visible on dashboard
-    await expect(page).toContainText(teamName);
-    await expect(page).toContainText(teamDesc);
+    await expect(page.locator('body')).toContainText(teamName);
+    await expect(page.locator('body')).toContainText(teamDesc);
   });
 
   test('should view team details', async ({ page }) => {
@@ -77,8 +77,8 @@ test.describe('Team Management', () => {
 
     // Should be on team page
     await expect(page).toHaveURL(`/teams/**`);
-    await expect(page).toContainText(teamName);
-    await expect(page).toContainText('Owners');
+    await expect(page.locator('body')).toContainText(teamName);
+    await expect(page.locator('body')).toContainText('Owners');
   });
 
   test('should delete a team', async ({ page }) => {
@@ -92,7 +92,7 @@ test.describe('Team Management', () => {
     await page.on('dialog', dialog => dialog.accept()); // Confirm deletion
 
     // Team should no longer be visible
-    await expect(page).not.toContainText(teamName);
+    await expect(page.locator('body')).not.toContainText(teamName);
   });
 });
 
@@ -110,8 +110,8 @@ test.describe('Owner Management', () => {
     await createOwner(page, ownerName, ownerEmail);
 
     // Owner should be visible
-    await expect(page).toContainText(ownerName);
-    await expect(page).toContainText(ownerEmail);
+    await expect(page.locator('body')).toContainText(ownerName);
+    await expect(page.locator('body')).toContainText(ownerEmail);
   });
 
   test('should delete owner from team', async ({ page }) => {
@@ -131,7 +131,7 @@ test.describe('Owner Management', () => {
     await page.on('dialog', dialog => dialog.accept());
 
     // Owner should no longer be visible
-    await expect(page).not.toContainText(ownerName);
+    await expect(page.locator('body')).not.toContainText(ownerName);
   });
 });
 
@@ -153,8 +153,8 @@ test.describe('Dog Management', () => {
     await createDog(page, ownerName, dogName, breed);
 
     // Dog should be visible
-    await expect(page).toContainText(dogName);
-    await expect(page).toContainText(breed);
+    await expect(page.locator('body')).toContainText(dogName);
+    await expect(page.locator('body')).toContainText(breed);
   });
 
   test('should delete dog from owner', async ({ page }) => {
@@ -178,7 +178,7 @@ test.describe('Dog Management', () => {
     await page.on('dialog', dialog => dialog.accept());
 
     // Dog should no longer be visible
-    await expect(page).not.toContainText(dogName);
+    await expect(page.locator('body')).not.toContainText(dogName);
   });
 });
 
@@ -242,16 +242,16 @@ test.describe('Complete User Journey', () => {
     await createDog(page, ownerName, dogName, breed);
 
     // Verify all data is visible
-    await expect(page).toContainText(teamName);
-    await expect(page).toContainText(ownerName);
-    await expect(page).toContainText(dogName);
-    await expect(page).toContainText(breed);
+    await expect(page.locator('body')).toContainText(teamName);
+    await expect(page.locator('body')).toContainText(ownerName);
+    await expect(page.locator('body')).toContainText(dogName);
+    await expect(page.locator('body')).toContainText(breed);
 
     // Go back to dashboard
     await page.click('a:has-text("← Back to dashboard")');
     await expect(page).toHaveURL('/');
-    await expect(page).toContainText(`Welcome, ${name}`);
-    await expect(page).toContainText(teamName);
+    await expect(page.locator('body')).toContainText(`Welcome, ${name}`);
+    await expect(page.locator('body')).toContainText(teamName);
 
     // Logout
     await logout(page);
