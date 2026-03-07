@@ -10,8 +10,11 @@ export function getDog(id: string): Promise<Dog> {
   return apiFetch<Dog>(`/api/dogs/${id}`);
 }
 
-export function createDog(data: Omit<Dog, 'id' | 'createdAt'>): Promise<Dog> {
-  return apiFetch<Dog>('/api/dogs', { method: 'POST', body: JSON.stringify(data) });
+export function createDog(ownerId: string, teamId: string, data: Omit<Dog, 'id' | 'createdAt' | 'ownerId' | 'teamId'>): Promise<Dog> {
+  return apiFetch<Dog>('/api/dogs', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, ownerId, teamId }),
+  });
 }
 
 export function updateDog(id: string, data: Partial<Omit<Dog, 'id' | 'createdAt'>>): Promise<Dog> {
