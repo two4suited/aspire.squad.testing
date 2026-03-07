@@ -164,31 +164,52 @@ docker run -d -p 6379:6379 redis:alpine
 
 ## Running the Application
 
-### Full Stack (All in One Terminal)
+### Simplified: Using Aspire (Recommended)
+
+Aspire automatically orchestrates all services with a single command:
 
 ```bash
-# Terminal 1: Start backend
 cd src
 dotnet run --project DogTeams.AppHost
-
-# Wait for backend to start, then open http://localhost:5173 in browser
 ```
 
-### Separate Terminals (Recommended for Development)
+This starts everything:
+- ✅ Backend API (http://localhost:5000)
+- ✅ Frontend (http://localhost:5173)
+- ✅ Cosmos DB Emulator
+- ✅ Redis Cache
+- ✅ Aspire Dashboard (https://localhost:17048)
+
+**Wait 15-20 seconds for initialization, then:**
 
 ```bash
-# Terminal 1: Backend
-cd src
-dotnet watch run
+# Terminal 2: Verify services
+curl http://localhost:5000/api/health
+curl http://localhost:5173
 
-# Terminal 2: Frontend
+# Terminal 3: Run tests
 cd src/DogTeams.Web/ClientApp
-npm run dev
-
-# Terminal 3: Tests (optional)
-cd src
-dotnet test --watch
+npm run test:e2e
 ```
+
+### Alternative: Manual Service Management (Advanced)
+
+If you prefer to run services separately:
+
+```bash
+# Terminal 1: Backend only
+cd src/DogTeams.Api
+dotnet run
+
+# Terminal 2: Frontend only
+cd src/DogTeams.Web/ClientApp
+npm start
+
+# Terminal 3: Tests
+npm run test:e2e
+```
+
+**Note:** Aspire is simpler and recommended for most development.
 
 ## Running Tests
 

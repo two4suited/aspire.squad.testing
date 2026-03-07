@@ -142,40 +142,48 @@ Full workflow: register → create team → add owner → add dog → logout
 
 ### Prerequisites & Setup
 
-**IMPORTANT: Start the application stack before running E2E tests**
+**IMPORTANT: Aspire automatically handles all services - backend, frontend, database, and cache**
 
-#### Terminal 1: Start Backend & Services
+#### Single Command: Start Everything with Aspire
+
 ```bash
 cd src
 dotnet run --project DogTeams.AppHost
 ```
 
-This starts:
+This single command starts:
 - .NET API on http://localhost:5000
+- React frontend on http://localhost:5173
 - Cosmos DB local emulator
 - Redis cache
-- All necessary services
+- Aspire Dashboard on https://localhost:17048 (for monitoring)
 
-#### Terminal 2: Start Frontend Dev Server
+**Wait 15-20 seconds for all services to fully initialize**
+
+#### Verify Services Are Ready
+
+In a separate terminal:
 ```bash
-cd src/DogTeams.Web/ClientApp
-npm start
+# Check API
+curl http://localhost:5000/api/health
+
+# Check Frontend
+curl http://localhost:5173 | head -5
 ```
 
-Frontend will be available at http://localhost:5173
-
-**Wait for both to fully start before running tests (typically 10-15 seconds)**
+Both should respond successfully.
 
 ### Execute E2E Tests
 
-Once both services are running:
+Once Aspire is running (and services verified), open a new terminal:
 
 ```bash
-# Terminal 3: Run all E2E tests
 cd src/DogTeams.Web/ClientApp
+
+# Run all E2E tests
 npm run test:e2e
 
-# Run with UI (interactive)
+# Run with interactive UI
 npm run test:e2e:ui
 
 # Run in debug mode (step through tests)
@@ -184,34 +192,63 @@ npm run test:e2e:debug
 # Run specific test file
 npx playwright test tests/app.spec.ts
 
-# Run specific test
+# Run specific test by name
 npx playwright test -g "should register and login successfully"
 
 # Run with verbose output
 npx playwright test --reporter=verbose
 ```
 
+### Test Results
+
+Expected output:
+```
+Running 15 tests using 1 worker
+
+✓ [chromium] › tests/app.spec.ts:5 › Authentication Flow › should register and login successfully
+✓ [chromium] › tests/app.spec.ts:14 › Authentication Flow › should login with existing account
+✓ [chromium] › tests/app.spec.ts:30 › Authentication Flow › should logout successfully
+...
+15 passed (2m 30s)
+```
+
 ### Troubleshooting E2E Tests
 
 **Tests fail with "Connection refused"**
-- Verify backend is running: `curl http://localhost:5000/api/health`
-- Verify frontend is running: `curl http://localhost:5173`
-- Both must be accessible before running tests
+- Verify Aspire is running: `lsof -i :5000`
+- Check both services are accessible:
+  ```bash
+  curl http://localhost:5000/api/health
+  curl http://localhost:5173
+  ```
+- Restart Aspire if needed
 
-**Tests timeout**
-- Check network connectivity
-- Ensure ports 5000 (API) and 5173 (frontend) are not blocked
-- Increase timeout in playwright.config.ts if needed
+**"Cannot find localhost:5173"**
+- Frontend may still be starting - wait 20 seconds after running Aspire
+- Check Aspire dashboard: https://localhost:17048
 
 **Playwright browser issues**
 ```bash
 # Reinstall browsers
 npx playwright install --with-deps
 
-# Clear cache
+# Clear Playwright cache
 rm -rf ~/.cache/ms-playwright
 npx playwright install
 ```
+
+**Tests timeout or hang**
+- Check Aspire logs for errors
+- Verify no port conflicts: `lsof -i :5000; lsof -i :5173; lsof -i :6379`
+- Restart from clean state: stop Aspire and run again
+
+### Aspire Dashboard
+
+While testing, you can monitor services in real-time:
+- Open https://localhost:17048/login?t=<token> in browser
+- Check API response times and errors
+- View Redis cache performance
+- Monitor database queries
 
 ### E2E Test Configuration
 
