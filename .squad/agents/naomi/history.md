@@ -14,13 +14,37 @@
 
 ## Learnings
 
-(To be populated as work progresses)
+### Playwright API Patterns
+- **Matchers**: Methods like `toContainText()`, `toHaveAttribute()` require Locator objects, not page objects
+- **Page vs Locator**: `page` object has navigation methods; use `page.locator()` to create a Locator for assertions
+- **Common pattern**: `await expect(page.locator('body')).toContainText(text)` for full-page text searches
+- **Alternative patterns**: `page.locator('css-selector')`, `page.getByText()`, `page.getByRole()` for specific elements
 
 ---
 
-*Append-only log. Use this to capture component patterns, integration points, UX learnings.*
+## Session 2 — Playwright API Fix (Issue #30)
 
-## Session 1 — React Startup Fix (Issue #23)
+**Date:** 2026-03-07
+
+**Task:** Fix incorrect Playwright API usage in E2E tests
+
+**Issue:**
+- Line 52 used `await expect(page).toContainText('Failed')`
+- Playwright's `toContainText()` matcher only works with Locator objects, not page objects
+- Similar pattern found 19 other times throughout the test file
+
+**Fix:**
+- Replaced all 20 instances of `expect(page).toContainText()` with `expect(page.locator('body')).toContainText()`
+- Also fixed negative assertions: `expect(page).not.toContainText()` → `expect(page.locator('body')).not.toContainText()`
+- TypeScript validation passed; no syntax errors
+
+**Key Learnings:**
+- Playwright matchers require Locator objects, not page objects
+- `page.locator('body')` is the standard pattern for full-page text searches
+- Code review: This systemic issue indicates the test file was likely written before Playwright API familiarity
+
+**Impact:**
+Issue #30 resolved. Tests now use correct Playwright API and should execute without matcher errors.
 
 **Date:** 2026-03-07
 
