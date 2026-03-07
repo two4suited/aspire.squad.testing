@@ -17,6 +17,7 @@
 | Backend | Backend Dev | [charter](.squad/agents/backend/charter.md) | 🟢 Active |
 | Aspire | Aspire Expert | [charter](.squad/agents/aspire/charter.md) | 🟢 Active |
 | Tester | Tester | [charter](.squad/agents/tester/charter.md) | 🟢 Active |
+| Docs | Technical Writer | [charter](.squad/agents/docs/charter.md) | 🟢 Active |
 | Scribe | Session Logger | [charter](.squad/agents/scribe/charter.md) | 🟢 Active |
 | Ralph | Work Monitor | — | 🔄 Monitor |
 

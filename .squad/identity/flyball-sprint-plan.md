@@ -296,6 +296,37 @@ ClubSeasonRecord  (new, /clubId partition)
 
 ---
 
+## Sprint FB-8: User Manual & Screenshots
+
+**Goal:** Ship a complete end-user manual covering every feature of the Dog Teams flyball app, with annotated screenshots of every screen.  
+**Owner agents:** Docs  
+**Priority:** Post-MVP — ships after FB-6 UI is complete; provides critical end-user guidance.
+
+| # | Work Item | Agent | Notes |
+|---|-----------|-------|-------|
+| FB-8.1 | Manual structure & outline | Docs | Table of contents covering: Getting Started, Clubs & Teams, Dogs & CRNs, Running a Tournament, Scorekeeper Heat Entry, Points & Titles Reference, Regional Standings, Admin (TD role), Historical Import |
+| FB-8.2 | Screenshot capture plan | Docs | List every screen that needs a screenshot; define annotations style (callouts, highlights, arrows) |
+| FB-8.3 | Getting Started section | Docs | Installation, first login, creating a Club, registering first Dog with CRN |
+| FB-8.4 | Clubs, Teams & Owners section | Docs | Club management, team rosters, owner/handler profiles, permissions model |
+| FB-8.5 | Dogs & CRNs section | Docs | CRN entry (NAFA-assigned + internal ID), jump height measurement workflow, Temporary vs Permanent measurement |
+| FB-8.6 | Tournament Management section | Docs | Creating a tournament, seeding, entering the draw, TD role permissions, entry timesheet rules |
+| FB-8.7 | Scorekeeper section | Docs | Heat-by-heat entry, pass/fault recording, live points update, breakout rules, result submission |
+| FB-8.8 | Points & Titles reference | Docs | Full title table (FD → FGDCh-G + Multibreed titles), Iron Dog tracking, award types, certificate eligibility |
+| FB-8.9 | Regional Standings section | Docs | How regional points accrue, 80% rule explained, tiebreaker formula, NAFA Champion eligibility criteria |
+| FB-8.10 | Historical Import section | Docs | Bulk import format, CSV template, how points are back-filled, import workflow |
+| FB-8.11 | Screenshots — all screens | Docs | Take/mock screenshots for every page and workflow; annotate with callouts, highlights, numbered steps |
+| FB-8.12 | PDF + web publish | Docs | Export as PDF (for print distribution) and static HTML (for hosting alongside app); generate index and search navigation |
+
+**Sprint Dependencies:** FB-6 (UI must be feature-complete before screenshots are taken)  
+**Exit Criteria:**
+- Table of contents spans all flyball feature areas ✓
+- At least one screenshot per major page/workflow ✓
+- All screenshots annotated with clear callouts or numbered steps ✓
+- Manual exports to both PDF and static HTML ✓
+- Manual is accessible to end-users (link from app or hosted separately) ✓
+
+---
+
 ## Critical Path
 
 ```
@@ -315,6 +346,8 @@ FB-5: Regional/Championship         ← Can start after FB-4
 FB-6: Frontend UI                   ← Can start after FB-4 + Phase 1 Sprint 3
     ↓
 FB-7: Polish/edge cases/reporting
+    ↓
+FB-8: User Manual & Screenshots     ← Depends on FB-6 (UI complete)
 ```
 
 ### Parallelization Opportunities
@@ -324,6 +357,7 @@ FB-7: Polish/edge cases/reporting
 | FB-2 + FB-3 (early) | ✓ Yes | Start FB-3 service stubs after FB-1 completes; FB-3 only needs Dog model shape |
 | FB-5 + FB-6 | ✓ Yes | Both unblock after FB-4 |
 | FB-7.1–7.3 + FB-7.4–7.8 | ✓ Yes | All independent polish items |
+| FB-8 | ✓ Yes (after FB-6) | Can start while FB-7 is being worked, as long as FB-6 UI is stable |
 
 ---
 
@@ -339,7 +373,10 @@ Delivers:
 - Titles awarded automatically on threshold crossing
 - Dog points profile visible in UI
 
-**Full Feature Set = All FB sprints complete**
+**Full Feature Set = All FB sprints complete (FB-1 through FB-8)**
+
+**End-User Documentation = FB-8 (User Manual & Screenshots)**
+Complete manual with annotated screenshots for all features, exported as PDF and HTML.
 
 ---
 
@@ -362,6 +399,7 @@ Delivers:
 | **Frontend** | FB-6, FB-7 (reports/forms) | All React pages, API client modules, scorekeeper UI |
 | **Aspire** | FB-1 (Cosmos containers), FB-4 (caching) | Wire new Cosmos containers in AppHost, Redis cache invalidation |
 | **Tester** | All FB sprints | Unit tests for all calculation services, integration tests for full lifecycle, E2E for UI flows |
+| **Docs** | FB-8 | Complete user manual with table of contents, annotated screenshots for every screen/workflow, PDF and HTML exports |
 
 ---
 

@@ -5,6 +5,7 @@
     { "persistent_name": "Backend", "universe": "user-defined", "created_at": "2026-03-07", "legacy_named": false, "status": "active" },
     { "persistent_name": "Aspire", "universe": "user-defined", "created_at": "2026-03-07", "legacy_named": false, "status": "active" },
     { "persistent_name": "Tester", "universe": "user-defined", "created_at": "2026-03-07", "legacy_named": false, "status": "active" },
+    { "persistent_name": "Docs", "universe": "user-defined", "created_at": "2026-03-07", "legacy_named": false, "status": "active" },
     { "persistent_name": "Scribe", "universe": "exempt", "created_at": "2026-03-07", "legacy_named": false, "status": "active" },
     { "persistent_name": "Ralph", "universe": "exempt", "created_at": "2026-03-07", "legacy_named": false, "status": "active" }
   ]
