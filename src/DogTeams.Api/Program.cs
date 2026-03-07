@@ -2,6 +2,7 @@ using DogTeams.Api.Configuration;
 using DogTeams.Api.Data;
 using DogTeams.Api.Data.Repositories;
 using DogTeams.Api.Auth;
+using DogTeams.Api.Caching;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -23,6 +24,7 @@ builder.Services.Configure<JwtOptions>(
 
 // Register Cosmos DB context and repositories
 builder.Services.AddScoped<CosmosDbContext>();
+builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
 builder.Services.AddScoped<ITeamRepository, TeamRepository>();
 builder.Services.AddScoped<IOwnerRepository, OwnerRepository>();
 builder.Services.AddScoped<IDogRepository, DogRepository>();
