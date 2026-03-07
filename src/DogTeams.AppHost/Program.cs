@@ -12,12 +12,12 @@ var api = builder.AddProject<Projects.DogTeams_Api>("api")
     .WithReference(redis)
     .WaitFor(cosmos)
     .WaitFor(redis)
-    .WithExternalHttpEndpoints();
+    .WithHttpEndpoint(port: 5000, targetPort: 5001, name: "api-http");
 
 // Add React/Vite frontend
 builder.AddViteApp("web", "../DogTeams.Web/ClientApp", "start")
     .WithReference(api)
     .WaitFor(api)
-    .WithExternalHttpEndpoints();
+    .WithHttpEndpoint(port: 5173, targetPort: 5174, name: "web-http");
 
 builder.Build().Run();
