@@ -1,0 +1,50 @@
+name: Build and Test
+
+on:
+  pull_request:
+    branches: [main, dev, preview, insider]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main, dev, insider]
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    name: Build and Test (.NET 10)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore src/DogTeams.sln
+
+      - name: Build solution
+        run: dotnet build src/DogTeams.sln --configuration Release --no-restore
+
+      - name: Run unit tests (integration tests skipped pending infra setup)
+        run: dotnet test src/DogTeams.Tests/DogTeams.Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --filter "FullyQualifiedName!~DogTeams.Tests.Integration"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/TestResults/*.trx'
+          retention-days: 7
+
+      - name: Publish test results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: '**/TestResults/*.trx'
+          check_name: Test Results
