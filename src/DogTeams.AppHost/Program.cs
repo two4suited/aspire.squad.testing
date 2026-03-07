@@ -14,9 +14,11 @@ var api = builder.AddProject<Projects.DogTeams_Api>("api")
     .WaitFor(redis)
     .WithExternalHttpEndpoints();
 
-builder.AddProject<Projects.DogTeams_Web>("web")
+// Add React/Vite frontend as npm app
+builder.AddNpmApp("web", "../DogTeams.Web/ClientApp", "start")
     .WithReference(api)
     .WaitFor(api)
-    .WithExternalHttpEndpoints();
+    .WithExternalHttpEndpoints()
+    .WithEnvironment("VITE_API_URL", "http://localhost:5000/api");
 
 builder.Build().Run();
