@@ -1,4 +1,6 @@
 using DogTeams.Api.Configuration;
+using DogTeams.Api.Data;
+using DogTeams.Api.Data.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +13,10 @@ builder.Services.AddControllers();
 
 builder.Services.Configure<CosmosDbOptions>(
     builder.Configuration.GetSection("CosmosDb"));
+
+// Register Cosmos DB context and repositories
+builder.Services.AddScoped<CosmosDbContext>();
+builder.Services.AddScoped<ITeamRepository, TeamRepository>();
 
 builder.Services.AddOpenApi();
 

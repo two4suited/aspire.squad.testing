@@ -146,3 +146,128 @@ public class DomainModelTests
         });
     }
 }
+
+// ─── FB-1: Club, Breed, and extended Dog tests ───────────────────────────────
+// Wrapped in #if false until Backend lands Club, Breed, and Dog flyball fields.
+// Remove #if false / #endif when DogTeams.Api.Models contains these types.
+
+#if false
+
+public class ClubModelTests
+{
+    [Fact]
+    public void Club_DefaultValues_AreCorrect()
+    {
+        var before = DateTime.UtcNow.AddSeconds(-1);
+        var club = new Club();
+
+        club.Id.Should().NotBeNullOrEmpty();
+        Guid.TryParse(club.Id, out _).Should().BeTrue();
+        club.Type.Should().Be("club");
+        club.CreatedAt.Should().BeAfter(before);
+    }
+
+    [Fact]
+    public void Club_NafaClubNumber_IsNullable()
+    {
+        var club = new Club();
+        club.NafaClubNumber.Should().BeNull();
+    }
+}
+
+public class DogFlyballFieldTests
+{
+    [Fact]
+    public void Dog_FlyballDefaults_AreCorrect()
+    {
+        var dog = new Dog();
+
+        dog.LifetimePoints.Should().Be(0);
+        dog.MultibreedLifetimePoints.Should().Be(0);
+        dog.MeasurementType.Should().Be(MeasurementType.None);
+    }
+
+    [Fact]
+    public void Dog_NafaCrn_IsNullableByDefault()
+    {
+        var dog = new Dog();
+        dog.NafaCrn.Should().BeNull();
+    }
+
+    [Fact]
+    public void Dog_WithersHeight_IsNullableByDefault()
+    {
+        var dog = new Dog();
+        dog.WithersHeightInches.Should().BeNull();
+    }
+}
+
+public class BreedModelTests
+{
+    [Fact]
+    public void Breed_DefaultValues_AreCorrect()
+    {
+        var before = DateTime.UtcNow.AddSeconds(-1);
+        var breed = new Breed();
+
+        breed.IsActive.Should().BeTrue();
+        breed.Type.Should().Be("breed");
+        breed.CreatedAt.Should().BeAfter(before);
+    }
+}
+
+#endif
+
+// ─── Jump height calculation — pure math, no Backend types required ───────────
+// Rule: JumpHeightInches = floor(WithersHeightInches - 6), min 7, max 14.
+// These tests encode the spec and should run immediately.
+// TODO: When Backend implements JumpHeightCalculator (or equivalent), replace the
+//       inline helper below with a call to the production method.
+
+public class JumpHeightCalculationTests
+{
+    /// <summary>
+    /// Encodes the NAFA jump height rule: floor(withers - 6), clamped to [7, 14].
+    /// Replace with production method reference once Backend implements it.
+    /// </summary>
+    private static int CalculateJumpHeight(decimal withersHeightInches)
+    {
+        var jump = (int)Math.Floor(withersHeightInches - 6m);
+        return Math.Clamp(jump, 7, 14);
+    }
+
+    [Fact]
+    public void JumpHeight_ForDog_14Inch_WithersIs8Inches()
+    {
+        // withers=14 → floor(14-6)=8 → 8 ≥ min(7) → jump=8
+        CalculateJumpHeight(14m).Should().Be(8);
+    }
+
+    [Fact]
+    public void JumpHeight_ForDog_12Inch_Withers_Is6Inches()
+    {
+        // withers=12 → floor(12-6)=6 → below min(7) → jump=7
+        CalculateJumpHeight(12m).Should().Be(7);
+    }
+
+    [Fact]
+    public void JumpHeight_ForDog_20Inch_Withers_Is14Inches()
+    {
+        // withers=20 → floor(20-6)=14 → at max(14) → jump=14
+        CalculateJumpHeight(20m).Should().Be(14);
+    }
+
+    [Fact]
+    public void JumpHeight_ForDog_22Inch_Withers_Is14Inches()
+    {
+        // withers=22 → floor(22-6)=16 → exceeds max(14) → jump=14
+        CalculateJumpHeight(22m).Should().Be(14);
+    }
+
+    [Fact]
+    public void JumpHeight_RoundsDown()
+    {
+        // withers=13.75 → floor(13.75-6)=floor(7.75)=7 → jump=7
+        CalculateJumpHeight(13.75m).Should().Be(7);
+    }
+}
