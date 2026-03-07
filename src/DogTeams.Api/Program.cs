@@ -17,6 +17,8 @@ builder.Services.Configure<CosmosDbOptions>(
 // Register Cosmos DB context and repositories
 builder.Services.AddScoped<CosmosDbContext>();
 builder.Services.AddScoped<ITeamRepository, TeamRepository>();
+builder.Services.AddScoped<IOwnerRepository, OwnerRepository>();
+builder.Services.AddScoped<IDogRepository, DogRepository>();
 
 builder.Services.AddOpenApi();
 
