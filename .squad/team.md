@@ -14,6 +14,7 @@
 | Holden | Lead | Scope, decisions, architecture review | 🏗️ |
 | Amos | Backend Dev | APIs, database, services, Aspire | 🔧 |
 | Naomi | Frontend Dev | React, TypeScript, UI components | ⚛️ |
+| Nova | Design Lead | Branding, theming, component design, a11y | 🎨 |
 | Bobbie | Tester | Tests, quality, integration | 🧪 |
 | Scribe | (silent) | Memory, decisions, session logs | 📋 |
 | Ralph | Work Monitor | Work queue, backlog, keep-alive | 🔄 |
@@ -25,4 +26,4 @@
 ---
 
 **Roster active as of:** 2026-03-07  
-**Last updated by:** Squad Coordinator (init)
+**Last updated by:** Squad Coordinator (Nova activated for dog-themed design)

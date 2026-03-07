@@ -265,3 +265,150 @@ The Cosmos emulator (via `RunAsPreviewEmulator()`) appears not to initialize dat
 
 ---
 
+## Capability: Automatic GitHub Issue Creation from Test Failures
+
+**Added:** 2026-03-07  
+**Owner:** Ralph (Work Monitor)  
+**Status:** Ready for deployment
+
+### New Capability
+
+Bobbie now has the ability to automatically create GitHub issues when E2E test failures are detected, ensuring bugs are immediately captured in the project backlog without manual reporting.
+
+### How It Works
+
+1. **After running tests:** Bobbie parses failure output
+2. **For each failure:** 
+   - Extracts test name, error message, logs
+   - Determines root cause category (database, api, frontend, framework, infrastructure)
+   - Maps to responsible agent (amos, naomi, or bobbie)
+3. **Creates GitHub issue:**
+   - Title: `E2E Test Failure: [Test Name]`
+   - Body: Includes root cause, failure logs, reproducible info
+   - Labels: `bug`, `testing`, `e2e`, `squad:[agent]`
+   - Assignee: Based on root cause mapping
+
+### Usage
+
+Call the helper script after each test run:
+
+```bash
+./.squad/scripts/create-issue-from-test-failure.sh \
+  --test-name "should create team" \
+  --root-cause "api" \
+  --failure-logs "500 error on registration" \
+  --responsible-agent "amos"
+```
+
+### Root Cause to Agent Mapping
+
+| Failure Type | Root Cause | Agent | Label |
+|-------------|-----------|-------|-------|
+| Database missing schema | database | amos | squad:amos |
+| API errors (500, validation) | api | amos | squad:amos |
+| Service discovery, ports | infrastructure | amos | squad:amos |
+| DOM rendering, selectors | frontend | naomi | squad:naomi |
+| Timeouts, async issues | framework | bobbie | squad:bobbie |
+
+### Documentation
+
+- **Integration Guide:** `.squad/decisions/inbox/bobbie-test-failure-to-issue.md`
+- **Helper Script:** `.squad/scripts/create-issue-from-test-failure.sh` (executable)
+- **Decision Rationale:** `.squad/decisions/inbox/auto-create-issues-from-e2e-failures.md`
+
+### Workflow for Next Test Run
+
+1. Execute E2E test suite: `npm run test:e2e`
+2. Capture any failures
+3. For each failure, extract:
+   - Test name
+   - Error logs (last 5-10 lines)
+   - Root cause category
+4. Call script with parameters (see Integration Guide for examples)
+5. Verify issues created in GitHub backlog
+6. Add issue numbers to `.squad/decisions.md` for tracking
+
+### Ready When
+
+- Helper script tested and working (dry-run verified)
+- `gh` CLI authenticated and accessible
+- Integration guide reviewed by team
+- Bobbie ready to invoke on next test run
+
+---
+
+
+## Session 6 — E2E Test Validation Post-Schema Fix
+
+**Date:** 2026-03-07  
+**Task:** Re-run E2E tests after Amos implemented Cosmos DB schema initialization (commit `8efb06f`)
+
+### Test Results
+
+- **Total Tests:** 15
+- **Passed:** 1/15 (6.7%)
+- **Failed:** 14/15 (93.3%)
+- **Duration:** 6.8 minutes
+- **Blocker:** Stale API processes running without schema initialization code
+
+### Root Cause Analysis
+
+**Critical Finding:** The schema initialization fix was successfully implemented, built, and committed, but the currently running Aspire API processes were started **before** the code changes were deployed.
+
+#### Timeline Evidence
+
+1. **API Process Start Time:** 11:45 AM (PIDs 83001, 82703)
+2. **Schema Fix Committed:** 12:33 PM (commit `8efb06f`)
+3. **DLL Last Built:** 12:33 PM (`DogTeams.Api.dll`)
+4. **Tests Executed:** 12:30 PM
+
+The running API predates the fix by ~48 minutes. Aspire does not auto-reload code changes for running processes.
+
+#### Failure Pattern
+
+All 14 failures followed the same sequence:
+1. ✅ Frontend loads (Vite on port 56174 via Aspire orchestration)
+2. ✅ User completes registration form
+3. ✅ "Create account" button clicked
+4. ❌ Button state: "Creating account…" (disabled, no response)
+5. ❌ API endpoint `/api/auth/register` hangs (30+ seconds, no response)
+6. ❌ Test timeout: `page.waitForURL('/')` fails after 30s
+
+**Direct Verification:** `curl` to API registration endpoint confirmed API-level hang — not a test infrastructure issue.
+
+### Passing Test
+
+**"should redirect to login when accessing protected routes without auth"** — The only test with no API dependency passed successfully, proving:
+- ✅ Playwright configuration works
+- ✅ Frontend routing functional
+- ✅ Test infrastructure solid
+
+### Key Learnings
+
+1. **Aspire Process Lifecycle:** Code changes to API require full Aspire AppHost restart. Unlike hot reload in standalone development, Aspire-managed processes do not auto-reload on code changes. After backend commits, always restart AppHost.
+
+2. **Validation Methodology:** When testing a fix, verify the running process actually contains the fix. Check:
+   - Process start time vs. commit time
+   - DLL build timestamp
+   - Startup logs for expected initialization behavior
+
+3. **Test vs. Application Failures:** Uniform failure pattern across all tests with API dependency + single passing test without API dependency = application blocker, not test issue.
+
+4. **Forensic Debugging:** Process timestamps, build artifacts, and git log correlation quickly identified the root cause without needing to dig into application logic.
+
+### Next Steps
+
+**Action Required:** Restart Aspire AppHost to load schema initialization code  
+**Expected Outcome:** All 15 tests pass after restart  
+**Owner:** Holden (Lead) or team member with AppHost access  
+
+### Recommendation
+
+Add to team workflow:
+- After merging backend changes, restart AppHost before validation
+- Consider adding pre-flight check in test suite to verify API build timestamp
+- Document Aspire reload requirements for new team members
+
+---
+
+*Validation deferred pending Aspire restart.*

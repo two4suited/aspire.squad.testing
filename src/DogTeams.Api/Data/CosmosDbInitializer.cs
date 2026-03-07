@@ -88,19 +88,16 @@ public class CosmosDbInitializer
 
         try
         {
-            // Check if container already has data
-            var query = new QueryDefinition("SELECT COUNT(1) as count FROM c");
-            var queryIterator = container.GetItemQueryIterator<BreedCountResult>(query);
+            // Check if container already has data using a simple query
+            var query = new QueryDefinition("SELECT TOP 1 c.id FROM c");
+            var queryIterator = container.GetItemQueryIterator<dynamic>(query);
 
             if (queryIterator.HasMoreResults)
             {
                 var resultSet = await queryIterator.ReadNextAsync();
-                var result = resultSet.FirstOrDefault();
-                int count = result?.Count ?? 0;
-
-                if (count > 0)
+                if (resultSet.Any())
                 {
-                    _logger.LogInformation("Breeds container already populated with {Count} breeds", count);
+                    _logger.LogInformation("Breeds container already populated");
                     return;
                 }
             }
@@ -129,11 +126,5 @@ public class CosmosDbInitializer
             _logger.LogError(ex, "Error seeding Breeds container");
             throw;
         }
-    }
-
-    /// <summary>Helper class for COUNT query results.</summary>
-    private class BreedCountResult
-    {
-        public int Count { get; set; }
     }
 }
