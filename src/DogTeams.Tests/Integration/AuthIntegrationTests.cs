@@ -15,35 +15,35 @@ public class AuthIntegrationTests : IClassFixture<AppHostFixture>
         _client = fixture.ApiClient;
     }
 
-    [Fact(Skip = "Requires DogTeams.AppHost and DogTeams.Api — remove Skip when projects are available")]
+    [Fact]
     public async Task PostAuthRegister_CreatesUser()
     {
         var registration = new
         {
             Email = $"owner-{Guid.NewGuid()}@example.com",
             Password = "P@ssw0rd!",
-            DisplayName = "Test Owner"
+            Name = "Test Owner"
         };
 
-        var response = await _client.PostAsJsonAsync("/auth/register", registration);
+        var response = await _client.PostAsJsonAsync("/api/auth/register", registration);
 
-        response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.Created);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
-    [Fact(Skip = "Requires DogTeams.AppHost and DogTeams.Api — remove Skip when projects are available")]
+    [Fact]
     public async Task PostAuthLogin_ReturnsJwtToken()
     {
         var email = $"owner-{Guid.NewGuid()}@example.com";
         var password = "P@ssw0rd!";
 
-        await _client.PostAsJsonAsync("/auth/register", new
+        await _client.PostAsJsonAsync("/api/auth/register", new
         {
             Email = email,
             Password = password,
-            DisplayName = "Login Test Owner"
+            Name = "Login Test Owner"
         });
 
-        var loginResponse = await _client.PostAsJsonAsync("/auth/login", new
+        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", new
         {
             Email = email,
             Password = password
@@ -51,34 +51,34 @@ public class AuthIntegrationTests : IClassFixture<AppHostFixture>
 
         loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await loginResponse.Content.ReadAsStringAsync();
-        body.Should().Contain("token");
+        body.Should().Contain("Token");
     }
 
-    [Fact(Skip = "Requires DogTeams.AppHost and DogTeams.Api — remove Skip when projects are available")]
+    [Fact]
     public async Task ProtectedEndpoint_WithoutToken_Returns401()
     {
-        // /teams is a protected endpoint — accessing without auth should be unauthorized
+        // /api/teams is a protected endpoint — accessing without auth should be unauthorized
         var client = new HttpClient { BaseAddress = _client.BaseAddress };
 
-        var response = await client.GetAsync("/teams");
+        var response = await client.GetAsync("/api/teams");
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
-    [Fact(Skip = "Requires DogTeams.AppHost and DogTeams.Api — remove Skip when projects are available")]
+    [Fact]
     public async Task ProtectedEndpoint_WithValidToken_Returns200()
     {
         var email = $"owner-{Guid.NewGuid()}@example.com";
         var password = "P@ssw0rd!";
 
-        await _client.PostAsJsonAsync("/auth/register", new
+        await _client.PostAsJsonAsync("/api/auth/register", new
         {
             Email = email,
             Password = password,
-            DisplayName = "Auth Test Owner"
+            Name = "Auth Test Owner"
         });
 
-        var loginResponse = await _client.PostAsJsonAsync("/auth/login", new
+        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", new
         {
             Email = email,
             Password = password
@@ -86,15 +86,15 @@ public class AuthIntegrationTests : IClassFixture<AppHostFixture>
 
         var loginBody = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
         loginBody.Should().NotBeNull();
-        loginBody!.Token.Should().NotBeNullOrEmpty();
+        loginBody!.AccessToken.Should().NotBeNullOrEmpty();
 
         var authedClient = new HttpClient { BaseAddress = _client.BaseAddress };
         authedClient.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", loginBody.Token);
+            new AuthenticationHeaderValue("Bearer", loginBody.AccessToken);
 
-        var response = await authedClient.GetAsync("/teams");
+        var response = await authedClient.GetAsync("/api/teams");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
-    private record LoginResponse(string Token);
+    private record LoginResponse(string AccessToken, string RefreshToken, int ExpiresIn);
 }
