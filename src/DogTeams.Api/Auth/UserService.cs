@@ -33,6 +33,7 @@ public interface IUserService
 /// </summary>
 public class InMemoryUserService : IUserService
 {
+    private static readonly object _lockObj = new();
     private static readonly Dictionary<string, User> Users = new();
 
     /// <summary>
@@ -40,19 +41,28 @@ public class InMemoryUserService : IUserService
     /// </summary>
     public static void ClearAllUsers()
     {
-        Users.Clear();
+        lock (_lockObj)
+        {
+            Users.Clear();
+        }
     }
 
     public Task<User?> GetUserByEmailAsync(string email)
     {
-        var user = Users.Values.FirstOrDefault(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
-        return Task.FromResult(user);
+        lock (_lockObj)
+        {
+            var user = Users.Values.FirstOrDefault(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+            return Task.FromResult(user);
+        }
     }
 
     public Task<User?> GetUserByIdAsync(string userId)
     {
-        Users.TryGetValue(userId, out var user);
-        return Task.FromResult(user);
+        lock (_lockObj)
+        {
+            Users.TryGetValue(userId, out var user);
+            return Task.FromResult(user);
+        }
     }
 
     public Task<User> CreateUserAsync(string email, string password, string name)
@@ -62,19 +72,22 @@ public class InMemoryUserService : IUserService
         if (string.IsNullOrEmpty(password))
             throw new ArgumentException("Password cannot be null or empty.", nameof(password));
 
-        var existingUser = Users.Values.FirstOrDefault(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
-        if (existingUser != null)
-            throw new InvalidOperationException("User with this email already exists.");
-
-        var user = new User
+        lock (_lockObj)
         {
-            Email = email,
-            PasswordHash = BCrypt.Net.BCrypt.EnhancedHashPassword(password),
-            Name = name
-        };
+            var existingUser = Users.Values.FirstOrDefault(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+            if (existingUser != null)
+                throw new InvalidOperationException("User with this email already exists.");
 
-        Users[user.Id] = user;
-        return Task.FromResult(user);
+            var user = new User
+            {
+                Email = email,
+                PasswordHash = BCrypt.Net.BCrypt.EnhancedHashPassword(password),
+                Name = name
+            };
+
+            Users[user.Id] = user;
+            return Task.FromResult(user);
+        }
     }
 
     public async Task<bool> VerifyPasswordAsync(string email, string password)
