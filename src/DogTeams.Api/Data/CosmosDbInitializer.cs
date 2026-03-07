@@ -24,6 +24,7 @@ public class CosmosDbInitializer
     /// <summary>
     /// Initializes the Cosmos DB schema: creates database, containers, and seeds initial data.
     /// Safe to call multiple times (idempotent).
+    /// Includes a timeout to prevent indefinite waits if Cosmos isn't responding.
     /// </summary>
     public async Task InitializeAsync()
     {
@@ -31,25 +32,36 @@ public class CosmosDbInitializer
         {
             _logger.LogInformation("Starting Cosmos DB schema initialization for database: {DatabaseName}", _options.DatabaseName);
 
-            // Create database if it doesn't exist
-            var databaseResponse = await _client.CreateDatabaseIfNotExistsAsync(_options.DatabaseName);
-            var database = databaseResponse.Database;
-            _logger.LogInformation("Database {DatabaseName} is ready", _options.DatabaseName);
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
+            {
+                try
+                {
+                    // Create database if it doesn't exist
+                    var databaseResponse = await _client.CreateDatabaseIfNotExistsAsync(_options.DatabaseName, cancellationToken: cts.Token);
+                    var database = databaseResponse.Database;
+                    _logger.LogInformation("Database {DatabaseName} is ready", _options.DatabaseName);
 
-            // Create all required containers
-            await CreateContainerIfNotExistsAsync(database, _options.TeamsContainer, "/id");
-            await CreateContainerIfNotExistsAsync(database, _options.OwnersContainer, "/id");
-            await CreateContainerIfNotExistsAsync(database, _options.DogsContainer, "/id");
-            await CreateContainerIfNotExistsAsync(database, _options.BreedsContainer, "/id");
-            await CreateContainerIfNotExistsAsync(database, _options.ClubsContainer, "/id");
-            await CreateContainerIfNotExistsAsync(database, "identity", "/id");
+                    // Create all required containers
+                    await CreateContainerIfNotExistsAsync(database, _options.TeamsContainer, "/id", cts.Token);
+                    await CreateContainerIfNotExistsAsync(database, _options.OwnersContainer, "/id", cts.Token);
+                    await CreateContainerIfNotExistsAsync(database, _options.DogsContainer, "/id", cts.Token);
+                    await CreateContainerIfNotExistsAsync(database, _options.BreedsContainer, "/id", cts.Token);
+                    await CreateContainerIfNotExistsAsync(database, _options.ClubsContainer, "/id", cts.Token);
+                    await CreateContainerIfNotExistsAsync(database, "identity", "/id", cts.Token);
 
-            _logger.LogInformation("All containers created successfully");
+                    _logger.LogInformation("All containers created successfully");
 
-            // Seed initial data
-            await SeedBreedsAsync(database);
+                    // Seed initial data
+                    await SeedBreedsAsync(database, cts.Token);
 
-            _logger.LogInformation("Cosmos DB schema initialization completed successfully");
+                    _logger.LogInformation("Cosmos DB schema initialization completed successfully");
+                }
+                catch (OperationCanceledException)
+                {
+                    _logger.LogError("Cosmos DB initialization timed out after 30 seconds - ensure Cosmos Emulator/service is accessible and responsive");
+                    throw new TimeoutException("Cosmos DB initialization timed out after 30 seconds");
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -61,7 +73,7 @@ public class CosmosDbInitializer
     /// <summary>
     /// Creates a container if it doesn't already exist.
     /// </summary>
-    private async Task CreateContainerIfNotExistsAsync(Database database, string containerName, string partitionKeyPath)
+    private async Task CreateContainerIfNotExistsAsync(Database database, string containerName, string partitionKeyPath, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -70,7 +82,8 @@ public class CosmosDbInitializer
                 {
                     Id = containerName,
                     PartitionKeyPath = partitionKeyPath
-                });
+                },
+                cancellationToken: cancellationToken);
             _logger.LogInformation("Container {ContainerName} is ready", containerName);
         }
         catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
@@ -82,7 +95,7 @@ public class CosmosDbInitializer
     /// <summary>
     /// Seeds the Breeds container with initial data if empty.
     /// </summary>
-    private async Task SeedBreedsAsync(Database database)
+    private async Task SeedBreedsAsync(Database database, CancellationToken cancellationToken = default)
     {
         var container = database.GetContainer(_options.BreedsContainer);
 
@@ -94,7 +107,7 @@ public class CosmosDbInitializer
 
             if (queryIterator.HasMoreResults)
             {
-                var resultSet = await queryIterator.ReadNextAsync();
+                var resultSet = await queryIterator.ReadNextAsync(cancellationToken);
                 if (resultSet.Any())
                 {
                     _logger.LogInformation("Breeds container already populated");
@@ -110,7 +123,7 @@ public class CosmosDbInitializer
             {
                 try
                 {
-                    await container.CreateItemAsync(breed, new PartitionKey(breed.Id));
+                    await container.CreateItemAsync(breed, new PartitionKey(breed.Id), cancellationToken: cancellationToken);
                 }
                 catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
                 {
