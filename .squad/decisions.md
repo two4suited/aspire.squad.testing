@@ -75,3 +75,47 @@
 ---
 
 *Append-only log. Do NOT edit existing entries.*
+
+## E2E Test Blocker — Cosmos DB Schema
+
+**Date:** 2026-03-07  
+**Status:** 🔴 Blocker — Routed to Amos (Backend)  
+**Impact:** All 15 E2E tests fail due to missing database schema  
+
+### The Blocker
+
+Cosmos DB collections are not initialized when AppHost starts. Entity Framework has not created the necessary collections ("Teams", etc.), so all tests fail at the first database query with a 404 CosmosException.
+
+### Test Execution Results
+
+- **Total tests:** 15
+- **Tests passed:** 0/15
+- **Infrastructure status:** ✅ Aspire, frontend, API all working
+- **Root cause:** Database schema missing
+
+### Evidence
+
+All failures follow the same pattern:
+1. User registration succeeds (API returns 201 Created)
+2. Test navigates to dashboard
+3. API queries Cosmos DB for user's teams
+4. Query fails: `Collection 'Teams' not found in database 'DogTeamsDb'` (404)
+
+### Fix Required
+
+Backend team (Amos) must implement Cosmos DB schema initialization on AppHost startup. Options:
+1. Call `context.Database.EnsureCreatedAsync()` during DbContext initialization
+2. Run Entity Framework migrations during AppHost startup
+3. Apply schema in `AppStartup` handler within Aspire configuration
+
+### Expected Outcome
+
+Once schema initialization is implemented, all 15 E2E tests should pass on re-run.
+
+### File Changes
+
+- `src/DogTeams.Web/ClientApp/playwright.config.ts` — Fixed Playwright port discovery to use Aspire environment variables
+
+---
+
+*Append-only log. Do NOT edit existing entries.*

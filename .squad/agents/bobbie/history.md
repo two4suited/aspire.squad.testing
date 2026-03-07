@@ -12,7 +12,21 @@
 
 ## Learnings
 
-(To be populated as work progresses)
+### Session 4 — E2E Test Complete Run & Blocker Handoff
+
+**Date:** 2026-03-07  
+
+**Key Learnings:**
+
+1. **All 15 E2E tests hit the same blocker:** Cosmos DB collections missing. No variation in failure patterns — all fail at the first database query stage.
+
+2. **Playwright dynamic port discovery fixed:** Playwright configuration now correctly reads Aspire environment variables (`services__web__http__0`, `services__web__https__0`) instead of hardcoding ports. This is the pattern for all Aspire-integrated testing.
+
+3. **Pattern: Test infrastructure must account for dynamic service ports in Aspire orchestration.** Unlike traditional localhost development, Aspire dynamically assigns ports at runtime. Tests must discover service endpoints from environment variables, not configuration files.
+
+4. **Infrastructure is solid, database initialization is the remaining task:** Aspire, frontend, API, and authentication all working correctly. The only blocker is Entity Framework schema initialization on startup.
+
+5. **Test categorization holds:** All 15 tests are well-organized across authentication, team management, owner management, dog management, and user journeys. Once database schema is initialized, they should all pass.
 
 ---
 
