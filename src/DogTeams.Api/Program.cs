@@ -75,10 +75,21 @@ builder.Services.AddOpenApi();
 var app = builder.Build();
 
 // Initialize Cosmos DB schema before the app processes any requests
-using (var scope = app.Services.CreateScope())
+try
 {
-    var initializer = scope.ServiceProvider.GetRequiredService<CosmosDbInitializer>();
-    await initializer.InitializeAsync();
+    app.Logger.LogInformation("Starting Cosmos DB initialization...");
+    using (var scope = app.Services.CreateScope())
+    {
+        var initializer = scope.ServiceProvider.GetRequiredService<CosmosDbInitializer>();
+        app.Logger.LogInformation("Calling InitializeAsync()...");
+        await initializer.InitializeAsync();
+        app.Logger.LogInformation("Cosmos DB initialization completed successfully");
+    }
+}
+catch (Exception ex)
+{
+    app.Logger.LogError(ex, "Cosmos DB initialization failed - API startup aborted");
+    throw;
 }
 
 if (app.Environment.IsDevelopment())
