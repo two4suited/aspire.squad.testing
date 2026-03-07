@@ -412,3 +412,213 @@ Add to team workflow:
 ---
 
 *Validation deferred pending Aspire restart.*
+
+## Session 7 — E2E Test Validation Attempt: Frontend Unresponsive
+
+**Date:** 2026-03-07  
+**Task:** Run E2E tests after fresh AppHost restart (Session 6 blocker resolution)
+
+### Test Results
+
+- **Total Tests:** 15
+- **Passed:** 0/15
+- **Failed:** 15/15
+- **New Root Cause:** Frontend (Vite) unresponsive on port 5173
+
+### Findings
+
+**Infrastructure Status:**
+- ✅ Fresh AppHost startup successful
+- ✅ Aspire dashboard running (port 17048)
+- ✅ Port 5173 listening (dcpctrl bound)
+- ✅ TCP connections accepted
+- ❌ HTTP responses hanging/not returned
+- ❌ curl http://localhost:5173 → timeout
+
+**Failure Pattern:**
+
+All 15 tests fail identically on first page navigation:
+
+```
+page.goto('/register') → Test timeout 30000ms
+Error: page.goto: net::ERR_ABORTED; maybe frame was detached?
+```
+
+ERR_ABORTED indicates network connection reset/closed by remote, not refused. This is different from previous blockers:
+- Session 5: 404 errors (collections missing)
+- Session 6: 30s timeout then success → page load → API hang
+- Session 7: Immediate network abort on page.goto
+
+###  Root Cause Analysis
+
+**Vite Dev Server Issue:** The dev server is:
+1. Binding port 5173 successfully (dcpctrl orchestration working)
+2. Accepting TCP connections (3-way handshake completing)
+3. **Not responding to HTTP requests** (connections hang indefinitely)
+
+**Likely Causes:**
+1. Vite compilation stuck or errored
+2. Module resolution problems
+3. Vite hot reload server in bad state
+4. Aspire AddViteApp() orchestration incompatible with dev mode
+5. Port forwarding/proxy misconfiguration
+
+### Key Learning: Port Listening ≠ Service Ready
+
+A process can:
+- Bind to a port ✅
+- Accept TCP connections ✅
+- Still not respond to HTTP requests ❌
+
+Deeper diagnostics needed:
+- Check error logs from Vite process
+- Inspect HTTP response headers (may show partial response)
+- Verify Aspire's orchestration of Node.js dev server
+
+### Impact
+
+**Blocker Status:** New infrastructure blocker - frontend unavailable  
+**Affected Tests:** All 15  
+**Team Impact:** E2E testing cannot proceed until resolved
+
+### Routed To
+
+- **Naomi:** Frontend lead - diagnose Vite dev server
+- **Holden:** Architecture lead - verify Aspire AddViteApp() configuration
+
+### Next Steps
+
+1. Naomi: Manual `npm run dev` test in ClientApp directory
+2. Holden: Review Aspire orchestration of Vite vs. production build
+3. Once frontend responds to `curl http://localhost:5173/` → retry test suite
+
+---
+
+**Status:** Blocked. Waiting for frontend team diagnosis.
+
+## Session 8 — E2E Infrastructure Mismatch Diagnosed
+
+**Date:** 2026-03-07 (Continuation after Naomi's auth fixes #35, #36)  
+**Task:** Run full E2E suite to validate fixes  
+**Context:** After Naomi fixed authentication redirect and error display, tests should show dramatic improvement
+
+### Test Results Summary
+
+- **Total Tests:** 15
+- **Passed:** 0/15
+- **Failed:** 15/15
+- **Pass Rate:** 0% (unchanged from previous session)
+- **Root Cause:** Infrastructure configuration mismatch — frontend not available at configured URL
+
+### Key Finding: Service Orchestration Failure
+
+**Critical Issue:** The Aspire AppHost is configured to expose services on their canonical ports (5000 for API, 5173 for frontend), but the **Vite dev server is running independently on port 49284** and is **NOT listening on port 5173**.
+
+**Evidence:**
+- AppHost configured: `WithHttpEndpoint(port: 5173, targetPort: 5174, name: "web-http")` (AppHost/Program.cs)
+- Playwright configured: baseURL = `http://localhost:5173` (playwright.config.ts)
+- Vite dev server: Running on port 49284 (from `npm run dev`)
+- Test result: `net::ERR_ABORTED` on `page.goto('/register')` attempting to reach 5173
+
+**Aspire URL Resolution Chain:**
+1. Tests attempt: `http://localhost:5173/register`
+2. Port 5173 accepts connection (dcpctrl bound to it)
+3. Connection aborts before HTTP response (no Vite server responding)
+4. Tests timeout after 30s
+
+### Naomi's Auth Fixes Impact
+
+The authentication fixes (#35: redirect handling, #36: error display) are **not being tested** because the frontend never loads. The fixes are logically sound but untestable until the infrastructure is repaired.
+
+### Infrastructure Status
+
+- ✅ AppHost running (PID 12239)
+- ✅ Dashboard accessible (https://localhost:17048)
+- ✅ API processes running on assigned ports
+- ✅ Vite dev server running (port 49284)
+- ✅ Playwright correctly configured
+- ❌ Frontend not available at expected port (5173)
+- ❌ Tests cannot reach frontend to test auth fixes
+
+### Root Cause Categories
+
+1. **Orchestration Issue:** Aspire configured to proxy port 5173 but Vite not responding
+2. **Dev Mode Issue:** Vite may not be properly configured for Aspire orchestration
+3. **Configuration Mismatch:** Two separate server instances (Aspire proxy vs. Vite dev) not coordinated
+
+### What Should Happen (Expected Flow)
+
+```
+Aspire AppHost (port 5173 endpoint configured)
+    ↓ (proxies to)
+Vite dev server (should listen on actual port)
+    ↓ (tests request)
+Frontend pages + auth flows (Naomi's fixes)
+    ↓ (API calls via proxy)
+API on port 5000
+```
+
+### What's Actually Happening
+
+```
+Aspire AppHost (binds port 5173, but no backend)
+    ↓ (no Vite server listening)
+Tests timeout → net::ERR_ABORTED
+    
+Vite dev server (separate, port 49284)
+    ↓ (unused)
+Frontend code (untested)
+```
+
+### Naomi's Fixes: Validation Status
+
+| Fix | Issue | Status | Reason |
+|-----|-------|--------|--------|
+| Auth redirect (#35) | Redirect loop | **Untested** | Frontend unreachable |
+| Error display (#36) | Error UI | **Untested** | Frontend unreachable |
+
+### Key Learnings
+
+1. **Aspire Orchestration Complexity:** Aspire's service discovery and port forwarding is sophisticated but requires explicit configuration for dev servers. A Node.js dev server isn't automatically discoverable just because Aspire binds the port.
+
+2. **Infrastructure vs. Application:** The authentication fixes are correct but sitting behind an infrastructure blocker. This is a valuable lesson in layered testing — app-level fixes require infrastructure-level coordination.
+
+3. **Port Binding Illusion:** Just because port 5173 shows listening doesn't mean services are responding. Deep diagnostics needed (process logs, HTTP headers, connection states).
+
+### Responsible Agents for Fix
+
+1. **Naomi** (Frontend Lead): 
+   - Verify Vite is configured for Aspire orchestration
+   - Check that Vite server responds to HTTP on its bound port
+   - Confirm auth fixes are syntactically correct in dev mode
+
+2. **Holden** (Architecture):
+   - Review Aspire `AddViteApp()` configuration
+   - Ensure port forwarding from 5173 → Vite actual port works
+   - May require Aspire version update or configuration change
+
+### Next Actions
+
+1. **Before testing again:**
+   - Fix Aspire → Vite orchestration
+   - Verify `curl http://localhost:5173/` returns HTML
+   - Confirm Vite dev server logs show no errors
+
+2. **Re-test:**
+   - Re-run full E2E suite with `npm run test:e2e`
+   - Expected: Tests connect to frontend, test Naomi's auth fixes
+   - Success metric: ≥10/15 pass (Naomi's fixes work, remaining may need more backend work)
+
+### Infrastructure Readiness Checklist
+
+Before Bobbie retests:
+- [ ] `curl -I http://localhost:5173/` returns 200 OK
+- [ ] `curl -s http://localhost:5000/api/health` returns valid JSON
+- [ ] Playwright can navigate to http://localhost:5173/login
+- [ ] Frontend renders (check Vite console for no errors)
+- [ ] API responds to registration requests (no 500 errors)
+
+---
+
+**Status:** Infrastructure blocker. Auth fixes untested pending Aspire/Vite coordination fix.
+
