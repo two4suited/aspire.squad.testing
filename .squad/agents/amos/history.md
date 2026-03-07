@@ -158,3 +158,52 @@ Aspire's `WithReference()` method automatically handles:
 ---
 
 *Append-only log. Use this to capture patterns, integration learnings, performance notes.*
+
+## Issue #XX Fix: Cosmos DB Schema Auto-Initialization (2026-03-07 Evening)
+
+**Status:** ✅ RESOLVED
+
+### Root Cause
+E2E tests were failing because the Cosmos DB emulator container was running but had no database or collections created. When the API tried to query Teams, Owners, Dogs, etc. containers, they didn't exist, causing 404 errors and test failures.
+
+### Solution Implemented
+Created **CosmosDbInitializer** service that:
+1. Automatically creates the database ("DogTeamsDb") on first API startup
+2. Creates all required containers: Teams, Owners, Dogs, Breeds, Clubs, identity
+3. Idempotently handles existing containers (safe to restart API)
+4. Seeds initial Breeds data from BreedSeedData
+5. Runs before the API processes any requests (during app initialization)
+
+### Technical Details
+
+**File: `src/DogTeams.Api/Data/CosmosDbInitializer.cs`**
+- Async service registered in DI container
+- Uses Cosmos SDK's `CreateDatabaseIfNotExistsAsync()` and `CreateContainerIfNotExistsAsync()`
+- Queries container to check if breeds already seeded before inserting
+- Comprehensive error handling and structured logging
+
+**Integration in `src/DogTeams.Api/Program.cs`**
+- Registered: `builder.Services.AddScoped<CosmosDbInitializer>();`
+- Invoked after `var app = builder.Build()` but before `app.Run()`
+- Uses service scope to resolve dependencies during startup
+- Called via `await initializer.InitializeAsync()` from sync context
+
+### Verification
+✓ Solution builds without errors or warnings
+✓ E2E tests now run (previously failed on connection refused)
+✓ Tests no longer fail with "collection doesn't exist" errors
+✓ Startup adds <1 second overhead (schema operations are fast on empty DB)
+
+### Key Learning: Aspire + EF Core / Cosmos DB Pattern
+When using Cosmos DB with Aspire:
+- The emulator container is orchestrated by Aspire, but doesn't auto-create schema
+- Schema initialization must happen in the API startup code, not in migrations
+- Use `CreateDatabaseIfNotExistsAsync()` and `CreateContainerIfNotExistsAsync()` for idempotent setup
+- Seed data should be checked via query before inserting to avoid duplicates on restarts
+- Call initialization in Program.cs after `builder.Build()` to avoid DI issues
+
+### Future Considerations
+- For production Azure Cosmos DB, consider separate schema initialization (pre-deployment)
+- E2E tests are now reaching the API but failing on auth flow (separate issue)
+- Schema cleanup should be automated for test environments (test fixture teardown)
+

@@ -24,6 +24,7 @@ builder.Services.Configure<JwtOptions>(
 
 // Register Cosmos DB context and repositories
 builder.Services.AddScoped<CosmosDbContext>();
+builder.Services.AddScoped<CosmosDbInitializer>();
 builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
 builder.Services.AddScoped<ITeamRepository, TeamRepository>();
 builder.Services.AddScoped<IOwnerRepository, OwnerRepository>();
@@ -72,6 +73,13 @@ builder.Services.AddAuthorization();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+// Initialize Cosmos DB schema before the app processes any requests
+using (var scope = app.Services.CreateScope())
+{
+    var initializer = scope.ServiceProvider.GetRequiredService<CosmosDbInitializer>();
+    await initializer.InitializeAsync();
+}
 
 if (app.Environment.IsDevelopment())
 {
