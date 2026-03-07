@@ -18,7 +18,6 @@ var api = builder.AddProject<Projects.DogTeams_Api>("api")
 builder.AddViteApp("web", "../DogTeams.Web/ClientApp", "start")
     .WithReference(api)
     .WaitFor(api)
-    .WithExternalHttpEndpoints()
-    .WithEnvironment("VITE_API_URL", "http://localhost:5000/api");
+    .WithExternalHttpEndpoints();
 
 builder.Build().Run();

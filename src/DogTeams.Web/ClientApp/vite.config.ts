@@ -8,7 +8,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: process.env.services__dogteamsapi__https__0 || process.env.services__dogteamsapi__http__0 || 'https://localhost:7001',
+        target: process.env.services__api__https__0 || process.env.services__api__http__0 || 'https://localhost:7001',
         changeOrigin: true,
         secure: false,
       }
