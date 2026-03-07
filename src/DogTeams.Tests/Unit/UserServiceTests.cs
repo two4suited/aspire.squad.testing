@@ -9,8 +9,8 @@ public class UserServiceTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        // Create fresh instance for each test - but note: InMemoryUserService uses static dict
-        // This is a limitation of the current implementation. In production, use Cosmos DB store.
+        // Clear static user store before each test to ensure isolation
+        InMemoryUserService.ClearAllUsers();
         _userService = new InMemoryUserService();
         await Task.CompletedTask;
     }

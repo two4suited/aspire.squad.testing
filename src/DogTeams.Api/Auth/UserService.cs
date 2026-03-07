@@ -35,6 +35,14 @@ public class InMemoryUserService : IUserService
 {
     private static readonly Dictionary<string, User> Users = new();
 
+    /// <summary>
+    /// Clears all users from the in-memory store. Used for testing purposes.
+    /// </summary>
+    public static void ClearAllUsers()
+    {
+        Users.Clear();
+    }
+
     public Task<User?> GetUserByEmailAsync(string email)
     {
         var user = Users.Values.FirstOrDefault(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
