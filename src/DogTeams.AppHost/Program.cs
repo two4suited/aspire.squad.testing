@@ -18,6 +18,6 @@ var api = builder.AddProject<Projects.DogTeams_Api>("api")
 builder.AddViteApp("web", "../DogTeams.Web/ClientApp", "start")
     .WithReference(api)
     .WaitFor(api)
-    .WithHttpEndpoint(port: 5173, targetPort: 5174, name: "web-http");
+    .WithHttpEndpoint(port: 5173, targetPort: 5173, name: "web-http");
 
 builder.Build().Run();

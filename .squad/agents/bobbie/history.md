@@ -622,3 +622,116 @@ Before Bobbie retests:
 
 **Status:** Infrastructure blocker. Auth fixes untested pending Aspire/Vite coordination fix.
 
+
+---
+
+## E2E Test Execution Session (2026-03-07T23:55Z)
+
+### Objective
+Validate that Cosmos DB schema initialization and Breed model JSON serialization fixes (commit 8efb06f) work correctly via Aspire orchestration.
+
+### Execution Attempt
+
+**Phase 1: Infrastructure Discovery**
+- Aspire AppHost started successfully on https://localhost:17048
+- Aspire dashboard accessible, but services show warnings
+- Vite dev server (`npm run start`) runs on http://localhost:5173 and responds to HTTP requests directly
+- API requires Aspire context (Cosmos connection, config via environment)
+
+**Phase 2: Port Forwarding Blocker**
+- **Root Cause Identified:** Aspire's AddViteApp() configuration has a port mapping mismatch
+  - AppHost config: `.WithHttpEndpoint(port: 5173, targetPort: 5174, name: "web-http")`
+  - Vite actual port: 5173
+  - Aspire's dcpctrl proxy binds to 5173 but forwards to 5174 (wrong target)
+  - Result: Connections to localhost:5173 hang (Aspire proxy → [unmapped] 5174)
+  
+**Evidence:**
+- `lsof -i :5173` shows TWO listeners:
+  1. dcpctrl (Aspire proxy) - PID 54514
+  2. node (Vite) - PID 56452
+- Curl to http://localhost:5173 times out when dcpctrl is listening
+- Curl to http://localhost:5173 succeeds (HTTP 200) when dcpctrl killed and only Vite listening
+- Playwright test timeouts: `net::ERR_ABORTED` trying to navigate to localhost:5173
+
+**This is NOT a Cosmos DB issue — this is an Aspire orchestration bug.**
+
+**Phase 3: Docker Unavailable**
+- Aspire warning: "Container runtime 'docker' was found but appears to be unhealthy"
+- `docker ps`: "Cannot connect to the Docker daemon"
+- Docker Desktop not running on this machine
+- Without Docker, Cosmos DB emulator cannot start, preventing end-to-end validation
+
+### Infrastructure Issues Blocking E2E Tests
+
+| Issue | Root Cause | Owner | Impact | Status |
+|-------|-----------|-------|---------|--------|
+| Vite port forwarding | Aspire targetPort mismatch (5173→5174) | Holden (Architecture) | Tests cannot reach frontend | 🔴 BLOCKER |
+| Docker unavailable | Docker Desktop not running | System admin | Cannot start Cosmos emulator | 🔴 BLOCKER |
+| Cosmos DB initialization | Cannot test; Docker required | Amos (Backend) | Cannot validate schema fix | ⏸️ PENDING |
+| Breed JSON serialization | Cannot test; API unreachable | Naomi (Frontend) | Cannot validate model fix | ⏸️ PENDING |
+
+### What Can Be Validated Without E2E
+
+**Code Review (Possible without running tests):**
+1. CosmosDbInitializer logic (commit 8efb06f) - schema creation is correct
+2. Breed model JsonProperty attributes - Newtonsoft.Json compatibility applied correctly
+3. Configuration in Program.cs - initializer properly registered and invoked
+
+**What Needs Full E2E (Blocked):**
+- Actual database schema creation on real Cosmos instance
+- Auth flow with database operations
+- Team creation and retrieval through full stack
+- Breed reference data persistence
+
+### Recommendation
+
+**Before Re-running E2E Tests:**
+1. **Fix Aspire Vite port mapping** (Holden):
+   - Change line 21 in DogTeams.AppHost/Program.cs:
+     ```csharp
+     // FROM:
+     .WithHttpEndpoint(port: 5173, targetPort: 5174, name: "web-http");
+     // TO:
+     .WithHttpEndpoint(port: 5173, targetPort: 5173, name: "web-http");
+     // (or remove port mapping if Vite always uses 5173)
+     ```
+
+2. **Ensure Docker Desktop is running** (System setup):
+   - Required for Cosmos DB emulator container
+   - Aspire needs Docker daemon accessible
+
+3. **Verify Aspire services GREEN**:
+   - Cosmos DB container healthy
+   - Redis container healthy
+   - API responding
+   - Frontend proxying correctly
+
+4. **Then re-run:** `npm run test:e2e` from ClientApp directory
+
+### Learnings
+
+1. **Aspire's AddViteApp vs AddJavaScriptApp:** The switch from AddJavaScriptApp (which didn't auto-start Vite) to manual npm start reveals port forwarding isn't automatic. Aspire's port mapping requires explicit correct targetPort.
+
+2. **Docker Dependency:** Full Aspire orchestration requires Docker running. No Docker = no containers = broken pipeline. This is expected but worth documenting for CI/CD setup.
+
+3. **Infrastructure vs Application:** The Cosmos DB schema fix and Breed serialization fix are architecturally correct, but they cannot be validated without the infrastructure stack working end-to-end.
+
+4. **Test Isolation:** E2E tests are fully integrated (frontend→proxy→API→DB). A single infrastructure link breaks all tests. Unit/integration tests for Cosmos initializer and JSON serialization would be useful fallback validation.
+
+### Files Reviewed
+
+- src/DogTeams.AppHost/Program.cs - Aspire configuration
+- src/DogTeams.Web/ClientApp/playwright.config.ts - Test runner config
+- src/DogTeams.Web/ClientApp/vite.config.ts - Frontend dev server config
+- src/DogTeams.Api/Program.cs - API startup (Cosmos initializer invoked)
+- src/DogTeams.Api/Data/CosmosDbInitializer.cs - Schema creation logic (validated in commit 8efb06f)
+
+### Status
+
+**E2E Test Suite:** ❌ CANNOT RUN — Infrastructure blockers
+- **Expected outcome:** 15/15 pass (if infrastructure working and code fixes valid)
+- **Actual outcome:** 0/15 could execute (timeouts on Vite access)
+- **Infrastructure validation:** ⏸️ DEFERRED pending Docker + Aspire port fix
+
+**Next Action:** Route to Holden (Infrastructure) to fix Aspire port forwarding, then retry.
+
