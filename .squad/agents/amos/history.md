@@ -241,3 +241,77 @@ The `CosmosDbInitializer` service implemented during this session successfully r
 - Test teardown should include schema cleanup for repeatable test environments
 - Monitor for schema evolution needs as application grows
 
+
+## 2026-03-07: Aspire Health Check - Critical Issue Found
+
+### Task Objective
+Verify all Aspire resources are GREEN before E2E tests run. Check: Cosmos DB, API, Frontend, Redis.
+
+### Findings
+**Result: ❌ BLOCKER - Aspire orchestration incomplete**
+
+#### Resource Status
+| Resource | Status | Details |
+|----------|--------|---------|
+| **Cosmos DB** | ❌ NOT RUNNING | No Docker container found; database unavailable |
+| **Redis** | ❌ NOT RUNNING | No Docker container found; cache unavailable |
+| **API** | ⚠️  PARTIAL | Processes (PIDs 82703, 83001) running since 11:45 AM, ports 60179/60325 responding but degraded |
+| **Frontend** | ❌ NOT RUNNING | No Vite process found |
+| **AppHost** | ❌ TERMINATED | Orchestration process no longer active |
+
+#### Root Cause
+The AppHost orchestration process (`dotnet run --project src/DogTeams.AppHost`) has terminated or was manually stopped. This halted:
+- Container lifecycle management (Cosmos/Redis stopped)
+- Service initialization (no fresh configuration injection)
+- Frontend startup
+- Dashboard access
+
+The orphaned API processes remain running in a degraded state but cannot operate properly without their dependencies.
+
+#### Key Observations
+1. **No Seeding Errors** - This doesn't mean success; rather, Cosmos DB never started so seeding was never attempted
+2. **API Still Listening** - But redirecting to HTTPS ports (60325/7206), suggesting they're misconfigured for the disconnected state
+3. **2-hour Orphaned State** - Processes have been running without orchestrator management since ~11:45 AM, now 13:54 (2+ hours)
+4. **No Docker Containers** - Neither Cosmos nor Redis containers are running in Docker
+
+#### Resolution Path
+```bash
+cd src
+dotnet run --project DogTeams.AppHost
+```
+
+This will:
+1. Restart orchestration
+2. Pull/start Cosmos DB and Redis containers
+3. Reinject configuration
+4. Restart services properly
+5. Launch frontend
+6. Make everything GREEN
+
+### Implications for E2E Tests
+**🚫 CANNOT PROCEED** - All critical resources are unavailable. E2E tests require:
+- ✅ API /health responding
+- ✅ Frontend HTML loading
+- ✅ Cosmos DB seeded
+- ✅ Redis available
+- ✅ No error logs
+
+**Currently have: 0 of 5 ✅**
+
+### Artifacts Created
+- `.squad/decisions/inbox/amos-aspire-health-blocker.md` - Detailed blocker report
+- Validation completed 2026-03-07 13:54 PST
+
+### Technical Notes
+- Aspire AppHost is running from DogTeams.AppHost project (validated previously)
+- Program.cs correctly configured with Cosmos emulator + Redis + API + Vite frontend
+- Service references and configuration injection setup is sound
+- Issue is orchestration lifecycle, not configuration
+- Solution is straightforward: restart AppHost
+
+### Next Steps for Team
+1. Restore AppHost: `dotnet run --project src/DogTeams.AppHost` in separate terminal
+2. Wait for "Distributed application started" message
+3. Re-run health check
+4. Proceed with E2E tests once all resources show GREEN
+

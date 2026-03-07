@@ -6,5 +6,13 @@
     "team_size": 4,
     "names_allocated": ["Holden", "Amos", "Naomi", "Bobbie"],
     "reason": "Squad initialization for DogTeams (.NET 10 Aspire project)"
+  },
+  {
+    "assignment_id": "2026-03-07-drummer-001",
+    "universe": "the-expanse",
+    "assigned_at": "2026-03-07T21:33:00Z",
+    "team_size": 1,
+    "names_allocated": ["Drummer"],
+    "reason": "Infrastructure specialist for Aspire orchestration and DevOps"
   }
 ]

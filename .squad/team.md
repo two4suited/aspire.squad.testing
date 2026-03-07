@@ -12,10 +12,11 @@
 | Name | Role | Focus | Badge |
 |------|------|-------|-------|
 | Holden | Lead | Scope, decisions, architecture review | 🏗️ |
-| Amos | Backend Dev | APIs, database, services, Aspire | 🔧 |
+| Amos | Backend Dev | APIs, database, services | 🔧 |
 | Naomi | Frontend Dev | React, TypeScript, UI components | ⚛️ |
 | Nova | Design Lead | Branding, theming, component design, a11y | 🎨 |
 | Bobbie | Tester | Tests, quality, integration | 🧪 |
+| Drummer | DevOps / Infrastructure | Aspire orchestration, diagnostics, health | 🚀 |
 | Scribe | (silent) | Memory, decisions, session logs | 📋 |
 | Ralph | Work Monitor | Work queue, backlog, keep-alive | 🔄 |
 
@@ -26,4 +27,4 @@
 ---
 
 **Roster active as of:** 2026-03-07  
-**Last updated by:** Squad Coordinator (Nova activated for dog-themed design)
+**Last updated by:** Squad Coordinator (Drummer added for Aspire infrastructure management)

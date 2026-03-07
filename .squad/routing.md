@@ -8,7 +8,8 @@
 | API endpoints, databases, services | Amos | Holden | Backend owns implementation; Lead reviews |
 | React components, TypeScript, UI | Naomi | Holden | Frontend owns UI; Lead reviews large changes |
 | Testing, QA, integration | Bobbie | Holden | Tester owns test strategy; Lead signs off |
-| DevOps, infrastructure | Holden | Amos | Local dev setup is Lead's role; Ask Amos for deployment help |
+| Aspire orchestration, DevOps | Drummer | Amos | Infrastructure specialist owns runtime health; Ask Amos for backend diagnostics |
+| DevOps, infrastructure setup | Holden | Drummer | Architecture decisions with Drummer implementing |
 | Docs, changelogs | Scribe | — | Scribe maintains via orchestration log |
 
 ## By Signal

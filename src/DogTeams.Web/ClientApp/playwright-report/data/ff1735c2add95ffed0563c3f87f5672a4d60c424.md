@@ -1,0 +1,22 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - heading "Dog Teams" [level=1] [ref=e4]
+  - heading "Create account" [level=2] [ref=e5]
+  - generic [ref=e6]:
+    - generic [ref=e7]:
+      - text: Name
+      - textbox "Name" [ref=e8]: Test User
+    - generic [ref=e9]:
+      - text: Email
+      - textbox "Email" [ref=e10]: test+1772919820114@example.com
+    - generic [ref=e11]:
+      - text: Password
+      - textbox "Password" [ref=e12]: TestPassword123!
+    - button "Creating account…" [disabled] [ref=e13]
+  - paragraph [ref=e14]:
+    - text: Already have an account?
+    - link "Sign in" [ref=e15] [cursor=pointer]:
+      - /url: /login
+```
