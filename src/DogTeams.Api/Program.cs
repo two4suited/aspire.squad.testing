@@ -33,10 +33,15 @@ builder.Services.AddSingleton<IUserService, InMemoryUserService>();
 
 // Configure JWT authentication
 var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
+
+// In production, SigningKey must be configured
 if (string.IsNullOrEmpty(jwtOptions.SigningKey))
 {
-    // Generate a default key for development (32 bytes for HS256)
-    jwtOptions.SigningKey = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+    if (!builder.Environment.IsDevelopment())
+        throw new InvalidOperationException("JWT SigningKey must be configured in production via appsettings.json or environment variables");
+    
+    // Generate a deterministic key for development (allows token persistence across restarts within the same session)
+    jwtOptions.SigningKey = "ThisIsA32CharacterLongDevelopmentKeyForTesting!";
 }
 
 builder.Services.AddAuthentication(options =>
