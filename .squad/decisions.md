@@ -45,3 +45,33 @@
 ---
 
 *Append-only log. Do NOT edit existing entries.*
+
+## Session 2026-03-07 (Evening) — Naomi Playwright Fix & Holden Audit Complete
+
+### Naomi: Playwright API Fix (Issue #30)
+
+- **Status:** ✅ Complete
+- **Fix:** Replaced all 20 instances of `expect(page).toContainText()` with `expect(page.locator('body')).toContainText()`
+- **Root Cause:** Playwright matchers require Locator objects, not page objects
+- **Key Learning:** E2E test file was written without complete Playwright API understanding
+- **Recommendation:** Add ESLint rule or pre-commit hook to catch this pattern
+
+### Holden: Aspire Setup & Frontend Configuration Audit
+
+- **Status:** ✅ Complete & Ready for Development
+- **Verdict:** All major components correctly configured for local development
+- **Findings:**
+  - Aspire orchestration: ✅ Dynamic port allocation, service discovery working
+  - API integration: ✅ Service references properly wired, no hardcoded ports
+  - Frontend registration: ✅ Using AddViteApp() with Aspire.Hosting.JavaScript 13.1.2
+  - Environment injection: ✅ VITE_API_URL properly injected and used
+  - Port allocation: ✅ No conflicts detected; no macOS port 5000 issues
+  - E2E tests: ✅ Properly configured to work with Aspire orchestration
+
+**Minor Finding:** Vite config specifies `port: 3000` but start script uses `--port 5173`. The script wins; recommendation to update config for consistency (clarity fix, not functional).
+
+**Teams Ready:** Amos (Backend), Naomi (Frontend), Bobbie (Tester) can all proceed with development.
+
+---
+
+*Append-only log. Do NOT edit existing entries.*

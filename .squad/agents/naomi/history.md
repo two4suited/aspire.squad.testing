@@ -48,3 +48,21 @@ Fix for #22 resolved #23. Frontend now properly integrated with Aspire orchestra
 ---
 
 *Append-only log. Use this to capture component patterns, integration points, UX learnings.*
+
+## Session 3 — Playwright Test API Fix (Issue #30)
+
+**Date:** 2026-03-07 (Evening)
+
+**Task:** Fix incorrect Playwright API usage in E2E test suite (app.spec.ts)
+
+**Issue:** 20 instances of invalid `expect(page).toContainText()` calls throughout test file
+
+**Fix Applied:**
+- Replaced all 20 instances with `expect(page.locator('body')).toContainText()`
+- Fixed negative assertions: `expect(page).not.toContainText()` → `expect(page.locator('body')).not.toContainText()`
+- TypeScript validation: ✅ Passed
+
+**Key Insight:** Playwright matchers require Locator objects, not page objects. This systemic issue indicates the test file was likely written before full Playwright API familiarity. Consider adding ESLint rules or pre-commit hooks to catch this pattern in future.
+
+**Status:** ✅ Complete. Issue #30 resolved. Tests now use correct Playwright API.
+
