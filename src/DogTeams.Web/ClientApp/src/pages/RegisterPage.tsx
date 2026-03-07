@@ -19,7 +19,8 @@ export default function RegisterPage() {
       await register(name, email, password);
       navigate('/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      const message = err instanceof Error ? err.message : 'Registration failed';
+      setError(`Failed: ${message}`);
     } finally {
       setLoading(false);
     }

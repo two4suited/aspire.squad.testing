@@ -44,11 +44,17 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 
   if (!response.ok) {
     const text = await response.text().catch(() => response.statusText);
-    throw new Error(`API error ${response.status}: ${text}`);
+    // Ensure error messages always contain descriptive text
+    const errorMsg = text || `HTTP ${response.status}`;
+    throw new Error(errorMsg);
   }
 
   // 204 No Content
   if (response.status === 204) return undefined as unknown as T;
 
   return response.json() as Promise<T>;
+}
+
+export function setToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token);
 }
