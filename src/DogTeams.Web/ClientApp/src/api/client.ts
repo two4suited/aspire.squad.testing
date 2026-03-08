@@ -36,25 +36,30 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     ...(init.headers ?? {}),
   };
 
-  const response = await fetch(`${getBaseUrl()}${path}`, { ...init, headers });
+  try {
+    const response = await fetch(`${getBaseUrl()}${path}`, { ...init, headers });
 
-  // Only redirect to login for 401 on authenticated endpoints (those with a token)
-  // For login/register endpoints, let the error propagate normally
-  if (response.status === 401 && token) {
-    handleUnauthorized();
+    // Only redirect to login for 401 on authenticated endpoints (those with a token)
+    // For login/register endpoints, let the error propagate normally
+    if (response.status === 401 && token) {
+      handleUnauthorized();
+    }
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => response.statusText);
+      // Ensure error messages always contain descriptive text
+      const errorMsg = text || `HTTP ${response.status}`;
+      throw new Error(errorMsg);
+    }
+
+    // 204 No Content
+    if (response.status === 204) return undefined as unknown as T;
+
+    return response.json() as Promise<T>;
+  } catch (err) {
+    console.error('[apiFetch] Error fetching', path, ':', err);
+    throw err;
   }
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => response.statusText);
-    // Ensure error messages always contain descriptive text
-    const errorMsg = text || `HTTP ${response.status}`;
-    throw new Error(errorMsg);
-  }
-
-  // 204 No Content
-  if (response.status === 204) return undefined as unknown as T;
-
-  return response.json() as Promise<T>;
 }
 
 export function setToken(token: string): void {

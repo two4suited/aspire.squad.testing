@@ -194,4 +194,46 @@ public class UserServiceTests : IAsyncLifetime
         foundUser1!.Id.Should().Be(user1.Id);
         foundUser2!.Id.Should().Be(user2.Id);
     }
+
+    [Fact]
+    public async Task SeedTestUsers_CreatesTestUser_WithCorrectCredentials()
+    {
+        // Arrange
+        InMemoryUserService.ClearAllUsers();
+        
+        // Act
+        InMemoryUserService.SeedTestUsers();
+        
+        // Assert - Test user should exist
+        var user = await _userService.GetUserByEmailAsync("test@example.com");
+        user.Should().NotBeNull();
+        user!.Email.Should().Be("test@example.com");
+        user.Name.Should().Be("Test User");
+        
+        // Password verification should work
+        var pwVerified = await _userService.VerifyPasswordAsync("test@example.com", "TestPassword123!");
+        pwVerified.Should().BeTrue("test user password should verify correctly");
+        
+        // Wrong password should fail
+        var wrongPwVerified = await _userService.VerifyPasswordAsync("test@example.com", "WrongPassword");
+        wrongPwVerified.Should().BeFalse("wrong password should not verify");
+    }
+
+    [Fact]
+    public async Task SeedTestUsers_IsIdempotent_DoesNotDuplicateOnMultipleCalls()
+    {
+        // Arrange
+        InMemoryUserService.ClearAllUsers();
+        
+        // Act
+        InMemoryUserService.SeedTestUsers();
+        InMemoryUserService.SeedTestUsers();  // Call again
+        
+        // Assert - Should still be only one test user
+        var user = await _userService.GetUserByEmailAsync("test@example.com");
+        user.Should().NotBeNull();
+        
+        var verifyResult = await _userService.VerifyPasswordAsync("test@example.com", "TestPassword123!");
+        verifyResult.Should().BeTrue("test user should still be able to login after multiple seed calls");
+    }
 }

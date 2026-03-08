@@ -30,15 +30,22 @@ export default function TeamPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadData = async () => {
-    if (!id) return;
+    if (!id) {
+      console.log('[TeamPage] No id in useParams');
+      return;
+    }
     setIsLoading(true);
     setError(null);
+    console.log('[TeamPage] Loading team with id:', id);
     try {
       const [teamData, ownersData] = await Promise.all([getTeam(id), getOwners(id)]);
+      console.log('[TeamPage] Successfully loaded team:', teamData);
       setTeam(teamData);
       setOwners(ownersData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load team data');
+      const errorMsg = err instanceof Error ? err.message : 'Failed to load team data';
+      console.log('[TeamPage] Error loading team:', errorMsg);
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }
