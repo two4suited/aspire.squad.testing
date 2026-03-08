@@ -13,8 +13,6 @@
 
 ## Session 2026-03-07 (22:00-22:15 UTC) — Infrastructure Validation & Breed Seeding Fix
 
-### Mission: Validate Infrastructure Before E2E Tests
-
 **Status:** ✅ COMPLETE - All resources GREEN and operational
 
 ### Problem Discovered
@@ -85,9 +83,47 @@ aspire run --project src/DogTeams.AppHost
 - ✅ No infrastructure blockers identified
 - Recommend: Add JSON serialization check to CI/CD for model consistency
 
+## Session 2026-03-07 (Late) — Issue #39: Enable Cosmos DB Data Explorer
+
+### Mission: Add Data Explorer UI to local Cosmos DB development
+
+**Status:** ✅ COMPLETE - Build verified, change committed
+
+### Problem
+Cosmos DB emulator needed Data Explorer UI configuration to improve developer experience during local development and testing.
+
+### Solution Implemented
+**File:** `src/DogTeams.AppHost/Program.cs`
+
+Modified the Cosmos DB resource configuration to use lambda-based emulator setup:
+
+```csharp
+var cosmos = builder.AddAzureCosmosDB("cosmos")
+    .RunAsPreviewEmulator(emulator =>
+    {
+        emulator.WithDataExplorer();
+    });
+```
+
+**Key Learning:** The `RunAsPreviewEmulator()` method accepts an optional lambda parameter that receives the emulator resource builder instance. The `WithDataExplorer()` method must be called **within this lambda**, not in a fluent chain on the return value. This pattern prevents type mismatch errors with the base `IResourceBuilder<AzureCosmosDBResource>` type.
+
+### Build Verification
+✅ Full solution builds successfully with no errors or warnings
+✅ All dependent projects compile (ServiceDefaults, Api, AppHost)
+
+### Commit
+- Commit: `d2e61b1` — "feat: Enable Cosmos DB Data Explorer in Aspire emulator"
+- Reference: Closes #39
+
+### Impact
+- Cosmos DB Data Explorer is now available in Aspire dashboard during development
+- Developers can inspect collections, documents, and seed data visually
+- Simplifies local debugging of Cosmos DB operations
+
 ## Learnings
 **Drummer now understands:**
 - Aspire orchestration architecture (DCP + Docker)
 - Cosmos DB emulator integration pattern
 - JSON serialization requirements for .NET entity models
 - Infrastructure validation approach for microservice stacks
+- Cosmos DB Data Explorer enablement with lambda-based configuration pattern
