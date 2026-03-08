@@ -735,3 +735,87 @@ Validate that Cosmos DB schema initialization and Breed model JSON serialization
 
 **Next Action:** Route to Holden (Infrastructure) to fix Aspire port forwarding, then retry.
 
+
+---
+
+## Session 5 — Seeded Test User Login Test (Issue #31)
+
+**Date:** 2026-03-07  
+**Task:** Write focused test to verify login works with seeded credentials (test@example.com / TestPassword123!)  
+**Pattern:** Option 1 — E2E Test with Playwright
+
+### What I Did
+
+1. **Reviewed charter, history, and team decisions** to understand role and context
+2. **Analyzed existing E2E infrastructure:**
+   - Found Playwright config with Aspire dynamic port discovery ✅
+   - Located test helpers (registerAndLogin, logout, etc.) — solid foundation
+   - Identified test patterns: Locator API fixes already applied by Naomi ✅
+3. **Located seeded user infrastructure:**
+   - `UserSeedData.cs` defines test credentials (exact strings match specification)
+   - `InMemoryUserService.SeedTestUsers()` runs on startup in Development mode
+   - `Program.cs` confirms seeding only runs if `app.Environment.IsDevelopment()`
+4. **Created focused E2E test** in `tests/app.spec.ts`:
+   - New test: "should login with seeded test credentials"
+   - Places it first in Authentication Flow suite
+   - Includes clear comments explaining purpose and expectations
+   - Matches existing test pattern style (Playwright Locator API, async/await)
+
+### Test Code
+
+Added to `src/DogTeams.Web/ClientApp/tests/app.spec.ts` (lines 5–21):
+
+```typescript
+test('should login with seeded test credentials', async ({ page }) => {
+  // This test verifies the seeded test user (created in development mode by InMemoryUserService.SeedTestUsers())
+  // Test user credentials: test@example.com / TestPassword123!
+  // This is useful for debugging manual login issues outside of automated test registration
+  
+  await page.goto('/login');
+  
+  // Fill in seeded test credentials
+  await page.fill('#email', 'test@example.com');
+  await page.fill('#password', 'TestPassword123!');
+  await page.click('button:has-text("Sign in")');
+  
+  // Should redirect to dashboard on successful login
+  await expect(page).toHaveURL('/');
+  await expect(page.locator('body')).toContainText('Welcome,');
+  await expect(page.locator('body')).toContainText('Dog Teams');
+});
+```
+
+### Key Pattern Insights
+
+1. **Seeded users enable offline manual verification:** Brian can now run the test locally without registration flow, isolating the login endpoint for debugging.
+2. **Seed-only tests complement registration tests:** The existing `registerAndLogin()` helper tests the full flow; this test isolates just the login path with pre-created user.
+3. **Development-mode only:** Seeding only happens in Development, so this test requires `dotnet run --project DogTeams.AppHost` running (not Production mode).
+4. **Idempotent seeding:** `InMemoryUserService.SeedTestUsers()` is safe to call multiple times (won't duplicate users).
+
+### How Brian Uses This
+
+To debug the login issue:
+1. Start AppHost: `dotnet run --project DogTeams.AppHost`
+2. Run the test: `npm run test:e2e` (from ClientApp directory)
+3. Watch for the specific test result: "should login with seeded test credentials"
+4. If it fails → Infrastructure issue (AppHost not running, Cosmos schema, etc.)
+5. If it passes → Credentials work; issue was environmental (typo, wrong mode, etc.)
+
+### Files Modified
+
+- `src/DogTeams.Web/ClientApp/tests/app.spec.ts` — Added one test in Authentication Flow suite
+
+### Files Reviewed (No Changes)
+
+- `src/DogTeams.Api/Auth/UserSeedData.cs` — Verified credentials
+- `src/DogTeams.Api/Auth/UserService.cs` — Verified InMemoryUserService
+- `src/DogTeams.Api/Program.cs` — Verified seeding hook
+- `src/DogTeams.Web/ClientApp/tests/helpers.ts` — Pattern reference
+- `src/DogTeams.Web/ClientApp/playwright.config.ts` — Aspire dynamic discovery confirmed ✅
+
+### Next Steps for Brian
+
+- Run `npm run test:e2e` to verify the seeded credentials work
+- Check test output for "should login with seeded test credentials" result
+- If passes → Confirms seed infrastructure is working; issue was environmental
+- If fails → Coordinate with Amos to verify seed data initialization

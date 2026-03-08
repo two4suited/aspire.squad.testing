@@ -951,3 +951,44 @@ The issue: `page.waitForSelector()` expects CSS selectors, but `text=` is a Loca
 **Owner:** Naomi (Frontend)  
 **Status:** DECISION RECORDED
 
+
+---
+
+*Append-only log. Do NOT edit existing entries.*
+
+## Session 2026-03-08 — Aggressive Issue Fixing: 4 Closed, 2 Scoped
+
+### Pattern: Seeded User E2E Tests for Debugging
+
+**Date:** 2026-03-08  
+**Author:** Bobbie (Tester)  
+**Category:** Testing Pattern  
+**Status:** Recommended  
+
+For authentication-critical workflows, create **seeded user E2E tests** alongside **registration-based E2E tests**.
+
+**Purpose:**
+- Seeded tests isolate the authentication endpoint (login) from registration flow
+- Registration tests validate full user lifecycle (register → login → interact)
+- Together: Separate concerns and enable faster debugging
+
+**Implementation:**
+1. Add seed data to backend if not present (e.g., `UserSeedData.cs`)
+2. Seed only in Development mode: `if (app.Environment.IsDevelopment())`
+3. Create focused seeded-user E2E test with standard credentials
+4. Place before registration-based tests to establish baseline
+
+**Benefits:**
+- Faster debugging (no registration overhead)
+- Offline verification by manual testers
+- Layered validation (infrastructure separate from registration logic)
+- Idempotent tests (can re-run without cleanup)
+- Clear separation (auth works in general vs. auth + registration works)
+
+**When to Use:**
+✅ Authentication critical to workflows, seed data exists, development-mode testing acceptable, fast feedback needed  
+❌ Seed data inappropriate (transaction-heavy), production environment, registration logic under test
+
+**Files:** `src/DogTeams.Web/ClientApp/tests/app.spec.ts` — Added seeded user test  
+**Owner:** Bobbie (Tester)  
+**Status:** DECISION RECORDED
