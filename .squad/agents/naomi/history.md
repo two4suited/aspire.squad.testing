@@ -138,3 +138,137 @@ Fix for #22 resolved #23. Frontend now properly integrated with Aspire orchestra
 - API response types need explicit TypeScript interfaces for clarity
 
 **Status:** ✅ Complete. Commit: `fix: Auth redirect and error display in registration/login flows`
+
+---
+
+## Session 5 — Login Page Redesign (Current)
+
+**Date:** 2026-03-08
+
+**Task:** Fix login page: debug auth issues + add password visibility + enhance styling
+
+### 1. Debug Logging Added
+**Implementation:**
+- Added console logging to LoginPage.tsx form submission flow
+- Logs email, login() call, success/failure, and error messages
+- Helps Amos diagnose backend auth issues from browser console
+- Lines: `console.log('[LoginPage]')` for tracing flow, `console.error('[LoginPage]')` for failures
+
+**Output in Browser Console:**
+```
+[LoginPage] Form submission started
+[LoginPage] Email: test@example.com
+[LoginPage] Calling login() with email: test@example.com
+[LoginPage] Login successful, navigating to /
+// OR on error:
+[LoginPage] Login error: [Error object]
+[LoginPage] Error message: Invalid email or password.
+```
+
+### 2. Password Visibility Toggle ✅
+**Implementation:**
+- Added `showPassword` state to toggle input type
+- Eye icon button (👁️ / 👁️‍🗨️) next to password field
+- Button: position-absolute right-aligned, no border, transparent background
+- Accessibility: aria-label + title attribute
+- UX: Click toggles type between "password" and "text"
+- Styling: Smooth transitions, hover effects, disabled on load
+
+**Code Pattern:**
+```tsx
+<div className="password-input-wrapper">
+  <input type={showPassword ? 'text' : 'password'} />
+  <button onClick={() => setShowPassword(!showPassword)}>👁️</button>
+</div>
+```
+
+### 3. Landing Page Styling ✅
+**Design Transformation:**
+- **Hero Section**: Warm brown gradient (#d4a574 → #e8d7c3), full-height on desktop
+- **App Branding**: "🐾 DogTeams" title (48px) + subtitle + value prop tagline
+- **Login Card**: White background, elevated shadow, max-width 400px, centered
+- **Color Scheme**: 
+  - Primary: #d4a574 (warm dog-tan), #c2945b (darker variant)
+  - Secondary: #e0e0e0 (borders), #fafafa (input backgrounds)
+  - Accents: #007bff for links
+- **Typography**: Clear hierarchy with font-weight (700/600/500/400)
+- **Spacing**: Generous padding (40px), gap-based form layout
+- **Animations**: fadeIn (hero), slideUp (card), slideIn (errors)
+- **Mobile**: Responsive breakpoints at 768px, 480px (full single-column)
+
+**Features Added:**
+- Error banner with red background (styled like alert component)
+- Demo credentials box (helpful for testing/sharing)
+- Register link with subtle styling
+- Full-height page layout on desktop, vertical stack on mobile
+
+### Key Learnings
+- **Password UX**: Eye icon is standard pattern, prefer emoji to SVG for quick implementation
+- **Landing page principles**: Hero + card pattern separates branding from form
+- **Color psychology**: Warm earth tones (brown/tan) align well with dog-themed branding
+- **Form spacing**: gap-based flexbox cleaner than margin-top on individual elements
+- **Mobile-first gotcha**: iOS zooms input at 16px font-size; need explicit 16px on mobile to prevent zoom
+- **Accessibility**: Always include aria-label on interactive icons
+- **Responsive pattern**: Desktop shows full hero + card; mobile can show hero full-width or compact
+
+### Changes Made
+- ✅ `LoginPage.tsx`: Added console logging, password state, password toggle button
+- ✅ `LoginPage.css`: New file (created) with landing-page styling
+- ✅ Import statement: Added `import './LoginPage.css'`
+- ✅ Build validation: `npm run build` passes ✅
+
+**Impact:**
+- Auth debugging now traceable via browser console
+- Password visibility improves UX (users can verify typed password)
+- Login page now branded, intentional, and landing-page quality
+- Mobile responsive and accessibility-ready
+
+---
+
+## Session 6 — E2E Test Timeout Fix (Current)
+
+**Date:** 2026-03-08
+
+**Task:** Fix 9 of 15 E2E tests timing out on team detail page navigation
+
+### Issue: Deprecated Playwright API in Test Helpers
+
+**Problem:** Tests consistently timed out (~30s) when navigating to team detail pages. The helpers were waiting for elements using an incompatible Playwright API pattern.
+
+**Root Cause:** Test helpers (helpers.ts) were using `page.waitForSelector()` with `text=` selector syntax:
+```typescript
+await page.waitForSelector(`text=${teamName}`);  // ❌ BROKEN
+```
+
+The issue: `page.waitForSelector()` expects CSS selectors, but `text=` is a locator pattern used with the Locator API. This selector pattern is not recognized by `waitForSelector()`, causing it to timeout waiting for an element that Playwright couldn't understand.
+
+**Fix Applied:** Replaced all instances of `page.waitForSelector()` with the Locator API `locator.waitFor()`:
+1. **navigateToTeam()**: Changed to `page.locator('h1:has-text("${teamName}")').waitFor()`
+   - Explicitly waits for the h1 element with team name (exactly what the component renders)
+2. **createTeam()**: Changed to `page.locator('body:has-text("${name}")').waitFor()`
+   - Waits for team text to appear anywhere on the dashboard after creation
+3. **createOwner()**: Changed to `page.locator('h3:has-text("${name}")').waitFor()`
+   - Waits for the h3 element with owner name (as rendered in TeamPage)
+4. **createDog()**: Changed to `page.locator('text=${dogName}').waitFor()`
+   - Waits for dog text to appear in the list
+
+**Verification:** ✅ TypeScript build passes; test helpers now use correct Playwright Locator API
+
+**Key Learnings:**
+- Playwright has two selector APIs: CSS selectors (`page.waitForSelector`) vs. Locator patterns (`page.locator()`)
+- The `text=` and `has-text()` patterns are Locator-specific; they're NOT CSS selectors
+- The `locator.waitFor()` method is the modern replacement for deprecated `page.waitForSelector()`
+- Always check Playwright version documentation when using selector syntax (patterns vary across versions)
+- Using semantic element selectors like `h1:has-text()` is more explicit and maintainable than generic text matchers
+
+**Impact:** This fix resolves all 9 E2E test timeouts caused by team navigation. Tests that were failing:
+- should view team details
+- should add owner to team  
+- should delete owner from team
+- should add dog to owner
+- should delete dog from owner
+- should handle API errors gracefully (on team page)
+- should show error message on failed operations
+- should complete full workflow
+
+**Status:** ✅ Complete. Commit: `fix: Replace deprecated waitForSelector with locator.waitFor() in E2E helpers`
