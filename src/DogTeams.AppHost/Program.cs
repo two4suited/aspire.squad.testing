@@ -2,7 +2,10 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 #pragma warning disable ASPIRECOSMOSDB001
 var cosmos = builder.AddAzureCosmosDB("cosmos")
-    .RunAsPreviewEmulator();
+    .RunAsPreviewEmulator(emulator =>
+    {
+        emulator.WithDataExplorer();
+    });
 #pragma warning restore ASPIRECOSMOSDB001
 
 var redis = builder.AddRedis("redis");
