@@ -1,5 +1,6 @@
 using Microsoft.Azure.Cosmos;
 using DogTeams.Api.Configuration;
+using DogTeams.Api.Auth;
 using Microsoft.Extensions.Options;
 
 namespace DogTeams.Api.Data;
@@ -53,6 +54,7 @@ public class CosmosDbInitializer
 
                     // Seed initial data
                     await SeedBreedsAsync(database, cts.Token);
+                    await SeedUsersAsync(database, cts.Token);
 
                     _logger.LogInformation("Cosmos DB schema initialization completed successfully");
                 }
@@ -137,6 +139,56 @@ public class CosmosDbInitializer
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error seeding Breeds container");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Seeds the Identity container with test users if empty.
+    /// </summary>
+    private async Task SeedUsersAsync(Database database, CancellationToken cancellationToken = default)
+    {
+        var container = database.GetContainer("identity");
+
+        try
+        {
+            // Check if container already has data using a simple query
+            var query = new QueryDefinition("SELECT TOP 1 c.id FROM c");
+            var queryIterator = container.GetItemQueryIterator<dynamic>(query);
+
+            if (queryIterator.HasMoreResults)
+            {
+                var resultSet = await queryIterator.ReadNextAsync(cancellationToken);
+                if (resultSet.Any())
+                {
+                    _logger.LogInformation("Identity container already populated");
+                    return;
+                }
+            }
+
+            // Container is empty, seed test users
+            var users = UserSeedData.GetSeedUsers();
+            _logger.LogInformation("Seeding {UserCount} test users into Identity container", users.Count);
+
+            foreach (var user in users)
+            {
+                try
+                {
+                    await container.CreateItemAsync(user, new PartitionKey(user.Id), cancellationToken: cancellationToken);
+                    _logger.LogInformation("Seeded user: {Email} with ID: {UserId}", user.Email, user.Id);
+                }
+                catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+                {
+                    // User already exists, skip
+                    _logger.LogDebug("User {Email} already exists, skipping", user.Email);
+                }
+            }
+
+            _logger.LogInformation("Users seeding completed successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error seeding Identity container");
             throw;
         }
     }

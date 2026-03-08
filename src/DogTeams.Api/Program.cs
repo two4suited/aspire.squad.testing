@@ -11,7 +11,18 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddAzureCosmosClient("cosmos");
+// Only add Cosmos if connection is configured (makes it optional for standalone/test scenarios)
+var cosmosConnectionString = builder.Configuration.GetConnectionString("cosmos");
+var hasCosmosConfig = !string.IsNullOrEmpty(cosmosConnectionString) || 
+                      builder.Configuration.GetSection("Aspire:Microsoft:Azure:Cosmos").Exists() ||
+                      builder.Configuration.GetSection("Aspire:Microsoft:Azure:Cosmos:cosmos").Exists();
+
+if (hasCosmosConfig)
+{
+    builder.AddAzureCosmosClient("cosmos");
+    builder.Services.AddScoped<CosmosDbInitializer>();
+}
+
 builder.AddRedisClient("redis");
 
 builder.Services.AddControllers();
@@ -22,17 +33,20 @@ builder.Services.Configure<CosmosDbOptions>(
 builder.Services.Configure<JwtOptions>(
     builder.Configuration.GetSection("Jwt"));
 
-// Register Cosmos DB context and repositories
-builder.Services.AddScoped<CosmosDbContext>();
-builder.Services.AddScoped<CosmosDbInitializer>();
+// Register Cosmos DB context and repositories (only if Cosmos is configured)
+if (hasCosmosConfig)
+{
+    builder.Services.AddScoped<CosmosDbContext>();
+    builder.Services.AddScoped<ITeamRepository, TeamRepository>();
+    builder.Services.AddScoped<IOwnerRepository, OwnerRepository>();
+    builder.Services.AddScoped<IDogRepository, DogRepository>();
+    builder.Services.AddScoped<IUserService, CosmosUserService>();
+}
+
 builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
-builder.Services.AddScoped<ITeamRepository, TeamRepository>();
-builder.Services.AddScoped<IOwnerRepository, OwnerRepository>();
-builder.Services.AddScoped<IDogRepository, DogRepository>();
 
 // Register auth services
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
-builder.Services.AddSingleton<IUserService, InMemoryUserService>();
 
 // Configure JWT authentication
 var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
@@ -74,30 +88,29 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// Initialize Cosmos DB schema before the app processes any requests
-try
+// Initialize Cosmos DB schema only if Cosmos is configured
+if (hasCosmosConfig)
 {
-    app.Logger.LogInformation("Starting Cosmos DB initialization...");
-    using (var scope = app.Services.CreateScope())
+    try
     {
-        var initializer = scope.ServiceProvider.GetRequiredService<CosmosDbInitializer>();
-        app.Logger.LogInformation("Calling InitializeAsync()...");
-        await initializer.InitializeAsync();
-        app.Logger.LogInformation("Cosmos DB initialization completed successfully");
+        app.Logger.LogInformation("Starting Cosmos DB initialization...");
+        using (var scope = app.Services.CreateScope())
+        {
+            var initializer = scope.ServiceProvider.GetRequiredService<CosmosDbInitializer>();
+            app.Logger.LogInformation("Calling InitializeAsync()...");
+            await initializer.InitializeAsync();
+            app.Logger.LogInformation("Cosmos DB initialization completed successfully");
+        }
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Cosmos DB initialization failed - API startup aborted");
+        throw;
     }
 }
-catch (Exception ex)
+else
 {
-    app.Logger.LogError(ex, "Cosmos DB initialization failed - API startup aborted");
-    throw;
-}
-
-// Seed test users for manual testing (development only)
-if (app.Environment.IsDevelopment())
-{
-    app.Logger.LogInformation("Seeding test users for development...");
-    InMemoryUserService.SeedTestUsers();
-    app.Logger.LogInformation("Test users seeded successfully");
+    app.Logger.LogWarning("Cosmos DB is not configured - running in standalone mode without data persistence");
 }
 
 if (app.Environment.IsDevelopment())
