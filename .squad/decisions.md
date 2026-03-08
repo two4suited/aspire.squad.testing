@@ -734,3 +734,30 @@ colors: {
 ---
 
 *Append-only log. Do NOT edit existing entries.*
+
+## Session 2026-03-08 (Early Morning) — Naomi Auth Flow Fixes
+
+### E2E Test Scope Decision
+
+**Date:** 2026-03-08 (Early Morning)  
+**Context:** After Naomi's auth flow fixes (Issue #35 & #36), E2E test suite improved from 0/15 to 6/15 passing.
+
+**Decision:** Scope separation for follow-up work
+- **Auth flow & error handling:** FIXED and RESOLVED ✅
+  - Issue #35 (auth redirect timeout) — RESOLVED
+  - Issue #36 (error message display) — RESOLVED
+  - 6/15 tests now passing (authentication wave complete)
+- **Navigation & routing issues:** SEPARATE concerns
+  - 9/15 tests still blocked due to routing layer (not auth)
+  - Team management pages require navigation fixes
+  - Breed operations depend on navigation layer
+  - Should be addressed in follow-up session (different scope)
+- **Rationale:** Auth layer and navigation layer are independent subsystems. Fixing auth should not block routing investigation. Clearer ownership and focused debugging.
+
+**Action Items:**
+1. Naomi completed: Auth flow multi-step implementation, error message handling
+2. Next session: Holden or Naomi to investigate routing/navigation issues (separate ticket)
+3. Expected result: 15/15 tests passing once navigation layer debugged
+
+**Owner:** Naomi (Frontend)  
+**Status:** DECISION RECORDED
