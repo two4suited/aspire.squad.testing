@@ -92,6 +92,14 @@ catch (Exception ex)
     throw;
 }
 
+// Seed test users for manual testing (development only)
+if (app.Environment.IsDevelopment())
+{
+    app.Logger.LogInformation("Seeding test users for development...");
+    InMemoryUserService.SeedTestUsers();
+    app.Logger.LogInformation("Test users seeded successfully");
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

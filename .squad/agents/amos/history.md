@@ -315,3 +315,74 @@ This will:
 3. Re-run health check
 4. Proceed with E2E tests once all resources show GREEN
 
+---
+
+## Test User Seeding: Development Authentication (2026-03-07)
+
+**Status:** ✅ COMPLETE
+
+### Objective
+Seed a test user (`test@example.com` / `TestPassword123!`) into the authentication system for Brian's manual testing.
+
+### Implementation
+
+**Architecture Decision:** Leveraged existing `InMemoryUserService` (current auth backend) for rapid seeding rather than implementing full Cosmos DB user store migration (future work).
+
+**Files Created:**
+1. `src/DogTeams.Api/Auth/UserSeedData.cs` — Static data class with test credentials and factory method for creating seed User objects with BCrypt-hashed passwords
+
+**Files Modified:**
+1. `src/DogTeams.Api/Auth/UserService.cs` — Added `SeedTestUsers()` static method to `InMemoryUserService` with idempotent logic (checks for duplicate emails before inserting)
+2. `src/DogTeams.Api/Program.cs` — Added seeding call in development environment (after Cosmos DB initialization, before app.Run())
+
+### Technical Details
+
+**Seeding Flow:**
+```
+API Startup
+  ↓
+Cosmos DB Schema Initialization
+  ↓
+Development Environment Check
+  ↓
+InMemoryUserService.SeedTestUsers() [Idempotent]
+  ↓
+User added to in-memory dictionary with hashed password
+  ↓
+API Ready (user persists for runtime duration)
+```
+
+**Key Design Patterns:**
+- **Idempotency** — Checks existing users by email before inserting; safe to restart API multiple times
+- **BCrypt Hashing** — Uses `BCrypt.Net.BCrypt.EnhancedHashPassword()` matching register endpoint strategy
+- **Development-Only** — Seeding guarded by `app.Environment.IsDevelopment()` check
+- **Consistent with Seed Pattern** — Mirrors `CosmosDbInitializer` and `BreedSeedData` patterns for future extensibility
+
+### Verification
+
+✓ Solution builds without errors  
+✓ All projects compile successfully  
+✓ No breaking changes to existing auth flow  
+✓ Test user can be verified via login endpoint simulation  
+✓ Documentation provided to team  
+
+### Future Migration Path
+
+When transitioning from `InMemoryUserService` to Cosmos DB-backed user store:
+1. Create `CosmosUserStore` implementing `IUserService` interface
+2. Update `UserSeedData` to write directly to identity container (already defined in `CosmosDbContext`)
+3. Integrate seeding into `CosmosDbInitializer.SeedUsersAsync()` pattern
+4. Update Program.cs DI registration to use new implementation
+5. Existing seeding logic remains unchanged — only storage backend swaps
+
+### Learning: Authentication Seeding Strategy
+
+For development environments in Aspire-orchestrated .NET apps:
+- Seed test users during app startup (Program.cs) after schema initialization
+- Use static factory methods (like `UserSeedData.GetSeedUsers()`) to generate seed objects
+- Implement idempotent insertion logic to handle restart scenarios
+- Guard seeding with environment checks to prevent production data pollution
+- Document test credentials in decision files for team reference
+- Plan migration path to persistent storage (Cosmos DB) before production deployment
+
+---

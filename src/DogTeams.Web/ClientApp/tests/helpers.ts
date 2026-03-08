@@ -1,10 +1,12 @@
 import { Page } from '@playwright/test';
 
-const TEST_EMAIL = `test+${Date.now()}@example.com`;
 const TEST_PASSWORD = 'TestPassword123!';
 const TEST_NAME = 'Test User';
 
 export async function registerAndLogin(page: Page) {
+  // Generate unique email for each test to avoid conflicts
+  const TEST_EMAIL = `test+${Date.now()}@example.com`;
+  
   // Go to register page
   await page.goto('/register');
   await page.fill('#name', TEST_NAME);
@@ -33,7 +35,10 @@ export async function createTeam(page: Page, name: string, description?: string)
 
 export async function navigateToTeam(page: Page, teamName: string) {
   await page.click(`a:has-text("${teamName}")`);
-  await page.waitForSelector(`h1:has-text("${teamName}")`);
+  // Wait for URL to change to /teams/:id
+  await page.waitForURL(/\/teams\/.+/);
+  // Wait for the page to fully load the team name
+  await page.waitForSelector(`text=${teamName}`);
 }
 
 export async function createOwner(page: Page, name: string, email: string) {

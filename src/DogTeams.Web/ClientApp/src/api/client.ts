@@ -38,7 +38,9 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 
   const response = await fetch(`${getBaseUrl()}${path}`, { ...init, headers });
 
-  if (response.status === 401) {
+  // Only redirect to login for 401 on authenticated endpoints (those with a token)
+  // For login/register endpoints, let the error propagate normally
+  if (response.status === 401 && token) {
     handleUnauthorized();
   }
 

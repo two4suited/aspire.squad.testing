@@ -47,6 +47,26 @@ public class InMemoryUserService : IUserService
         }
     }
 
+    /// <summary>
+    /// Seeds test users into the in-memory store. Idempotent—skips users that already exist by email.
+    /// Used during application startup to populate known test credentials.
+    /// </summary>
+    public static void SeedTestUsers()
+    {
+        lock (_lockObj)
+        {
+            var seedUsers = UserSeedData.GetSeedUsers();
+            foreach (var seedUser in seedUsers)
+            {
+                var existingUser = Users.Values.FirstOrDefault(u => u.Email.Equals(seedUser.Email, StringComparison.OrdinalIgnoreCase));
+                if (existingUser == null)
+                {
+                    Users[seedUser.Id] = seedUser;
+                }
+            }
+        }
+    }
+
     public Task<User?> GetUserByEmailAsync(string email)
     {
         lock (_lockObj)
