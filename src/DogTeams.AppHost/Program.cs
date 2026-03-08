@@ -19,6 +19,11 @@ var api = builder.AddProject<Projects.DogTeams_Api>("api")
 
 // Add React/Vite frontend
 builder.AddViteApp("web", "../DogTeams.Web/ClientApp", "start")
+    .WithEndpoint("http", endpoint =>
+    {
+        endpoint.Port = 5173;
+        endpoint.IsProxied = false; // Disable proxy - Vite HMR requires direct connection
+    })
     .WithReference(api)
     .WaitFor(api);
 
